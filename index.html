@@ -2192,12 +2192,13 @@ function firma(lbl,sub){return '<div class="pp-firma"><div class="pp-firma-line"
 function renderOTE(arr){
   const tb=g('tb-ote');
   if(!arr.length){tb.innerHTML='<tr><td colspan="8"><div class="empty"><i class="ti ti-clipboard-list"></i>Sin órdenes.</div></td></tr>';return;}
-  tb.innerHTML=arr.map((o,i)=>'<tr><td><span class="mono">'+o.num+'</span></td><td style="color:#888">'+o.fecha+'</td><td>'+(o.eq||'—')+'</td><td>'+(o.prov||'—')+'</td><td><span class="badge b-gray">'+o.tipo+'</span></td><td>'+bEst(o.estado)+'</td><td>'+bConf(o.conf)+'</td><td><button class="btn-print" onclick="printOTE('+i+')" title="Imprimir PDF"><i class="ti ti-printer"></i></button></td></tr>').join('');
+  tb.innerHTML=arr.map((o,i)=>{const mi=S.ote.findIndex(x=>x.id===o.id);return '<tr><td><span class="mono">'+o.num+'</span></td><td style="color:#888">'+o.fecha+'</td><td>'+(o.eq||'—')+'</td><td>'+(o.prov||'—')+'</td><td><span class="badge b-gray">'+o.tipo+'</span></td><td>'+bEst(o.estado)+'</td><td>'+bConf(o.conf)+'</td><td style="white-space:nowrap"><button onclick="printOTE('+mi+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button><button onclick="editOTE('+mi+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button></td></tr>';}).join('');
 }
 function renderOT(arr){
   const tb=g('tb-ot');
   if(!arr.length){tb.innerHTML='<tr><td colspan="8"><div class="empty"><i class="ti ti-tool"></i>Sin órdenes.</div></td></tr>';return;}
-  tb.innerHTML=arr.map((o,i)=>'<tr><td><span class="mono">'+o.num+'</span></td><td style="color:#888">'+o.fecha+'</td><td>'+(o.eq||'—')+'</td><td>'+(o.tec||'—')+'</td><td><span class="badge b-gray">'+o.tipo+'</span></td><td>'+bPrio(o.prio)+'</td><td>'+bEst(o.estado)+'</td><td><button class="btn-print" onclick="printOT('+i+')" title="Imprimir PDF"><i class="ti ti-printer"></i></button></td></tr>').join('');
+  tb.innerHTML=arr.map(o=>{const mi=S.ot.findIndex(x=>x.id===o.id);return '<tr><td><span class="mono">'+o.num+'</span></td><td style="color:#888">'+o.fecha+'</td><td>'+(o.eq||'—')+'</td><td>'+(o.tec||'—')+'</td><td><span class="badge b-gray">'+o.tipo+'</span></td><td>'+bPrio(o.prio)+'</td><td>'+bEst(o.estado)+'</td><td style="white-space:nowrap"><button onclick="printOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button><button onclick="editOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button></td></tr>';
+  }).join('');
 }
 function renderEq(arr){
   const tb=g('tb-eq');
@@ -2885,7 +2886,7 @@ function renderEjec(arr){
     +'<td>'+(e.tec||'—')+'</td>'
     +'<td><span class="badge '+(estMap[e.estado]||'b-gray')+'">'+e.estado+'</span></td>'
     +'<td><button class="btn-print" onclick="printPrevEjec('+i+')" title="Imprimir registro"><i class="ti ti-printer"></i></button></td>'
-    +'</tr>'
+    +'<td style="white-space:nowrap"><button onclick="printPrevEjec('+i+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button><button onclick="editEjec('+i+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button></td>'
   ).join('');
 }
 
@@ -3042,9 +3043,9 @@ function renderOC(arr){
       +'<td style="text-align:right"><span class="mono">'+Number(o.total||0).toFixed(2)+'</span></td>'
       +'<td style="color:#888">'+o.moneda+'</td>'
       +'<td><span class="badge '+(estMap[o.estado]||'b-gray')+'">'+o.estado+'</span></td>'
-      +'<td>'
-        +'<button class="btn-print" onclick="printOC('+mainIdx+')" title="Imprimir OC" style="margin-right:4px"><i class="ti ti-printer"></i></button>'
-        +'<button class="btn-print" style="background:#e6f1fb;border-color:#a8c8f0;color:#185FA5" onclick="editOC('+mainIdx+')" title="Editar OC"><i class="ti ti-pencil"></i></button>'
+      +'<td style="white-space:nowrap">'
+        +'<button onclick="printOC('+mainIdx+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:4px">PDF</button>'
+        +'<button onclick="editOC('+mainIdx+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button>'
       +'</td>'
       +'</tr>';
   }).join('');
@@ -3396,6 +3397,99 @@ async function saveOCEdit(){
   closeModal('m-oc');
   clr(['oc-ot','oc-pago','oc-entrega','oc-lugar','oc-obs']);
   await loadOC();
+}
+
+// ══════════════════════════════════════
+// EDITAR OTE / OTC / EJECUCIÓN OTP
+// ══════════════════════════════════════
+
+async function editOTE(idx){
+  const o=S.ote[idx];
+  // Pre-cargar modal OTE
+  g('ote-num').value=o.num;
+  g('ote-fecha').value=o.fecha||'';
+  fillSel('ote-equipo',S.eq,'nom'); g('ote-equipo').value=o.eq||'';
+  fillProvSel(); g('ote-prov').value=o.prov||'';
+  g('ote-rut-prov').value=o.rutProv||'';
+  g('ote-factura').value=o.factura||'';
+  g('ote-tipo').value=o.tipo||'Mecanizado';
+  g('ote-estado').value=o.estado||'Pendiente';
+  g('ote-presup').value=o.presup||'';
+  g('ote-costo').value=o.costo||'';
+  g('ote-conf').value=o.conf||'N/A';
+  g('ote-cierre').value=o.cierre||'';
+  g('ote-desc').value=o.desc||'';
+  updateCodDisplay('ote');
+  // Cambiar botón a actualizar
+  const btn=g('m-ote').querySelector('.btn-primary');
+  btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
+  btn.onclick=async()=>{
+    const row={equipo:v('ote-equipo')||null,proveedor:v('ote-prov')||null,rut_proveedor:v('ote-rut-prov')||null,factura:v('ote-factura')||null,tipo:v('ote-tipo'),estado:v('ote-estado'),presupuesto:v('ote-presup')||null,costo_real:v('ote-costo')||null,conforme:v('ote-conf'),fecha_cierre:v('ote-cierre')||null,descripcion:v('ote-desc')||null};
+    loading(true);
+    const {error}=await sb.from('ote').update(row).eq('id',o.id);
+    loading(false);
+    if(error){dbErr(error,'guardar OTE');return;}
+    btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar OTE';
+    btn.onclick=saveOTE;
+    closeModal('m-ote'); await loadOTE(); updateDash();
+  };
+  g('m-ote').classList.add('open');
+}
+
+async function editOT(idx){
+  const o=S.ot[idx];
+  g('ot-num').value=o.num;
+  g('ot-fecha').value=o.fecha||'';
+  fillSel('ot-equipo',S.eq,'nom'); g('ot-equipo').value=o.eq||'';
+  g('ot-tec').value=o.tec||'';
+  g('ot-tipo').value=o.tipo||'Correctivo';
+  g('ot-prio').value=o.prio||'Normal';
+  g('ot-estado').value=o.estado||'Pendiente';
+  g('ot-hs').value=o.hs||'';
+  g('ot-hora-ini').value=o.horaIni||'';
+  g('ot-hora-fin').value=o.horaFin||'';
+  g('ot-desc').value=o.desc||'';
+  g('ot-obs').value=o.obs||'';
+  updateCodDisplay('otc');
+  const btn=g('m-ot').querySelector('.btn-primary');
+  btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
+  btn.onclick=async()=>{
+    const row={equipo:v('ot-equipo')||null,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:v('ot-estado'),horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null};
+    loading(true);
+    const {error}=await sb.from('otc').update(row).eq('id',o.id);
+    loading(false);
+    if(error){dbErr(error,'guardar OTC');return;}
+    btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar OTC';
+    btn.onclick=saveOT;
+    closeModal('m-ot'); await loadOTC(); updateDash();
+  };
+  g('m-ot').classList.add('open');
+}
+
+async function editEjec(idx){
+  const e=S.ejecucs[idx];
+  g('ejec-num').value=e.num;
+  g('ejec-fecha').value=e.fecha||'';
+  g('ejec-tec').value=e.tec||'';
+  g('ejec-horas-eq').value=e.horasEq||'';
+  g('ejec-estado').value=e.estado||'Completada';
+  g('ejec-obs').value=e.obs||'';
+  g('ejec-insumos').value=e.insumos||'';
+  g('mejec-title').textContent='Editar ejecución — '+e.num;
+  const btn=g('m-ejec').querySelector('.btn-primary');
+  btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
+  btn.onclick=async()=>{
+    const row={fecha:v('ejec-fecha'),tecnico:v('ejec-tec')||null,horas_equipo:v('ejec-horas-eq')||null,estado:v('ejec-estado'),observaciones:v('ejec-obs')||null,insumos_used:v('ejec-insumos')||null};
+    loading(true);
+    const {error}=await sb.from('otp_ejecuciones').update(row).eq('id',e.id);
+    loading(false);
+    if(error){dbErr(error,'guardar ejecución');return;}
+    btn.innerHTML='<i class="ti ti-device-floppy"></i> Registrar ejecución';
+    btn.onclick=saveEjec;
+    g('mejec-title').textContent='Ejecutar tarea preventiva';
+    closeModal('m-ejec'); await loadEjecucs();
+  };
+  g('m-ejec').classList.add('open');
 }
 
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
