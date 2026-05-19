@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CALCAR Mantenimiento — CRM v3</title>
+<title>CALCAR — Gestión de Mantenimiento</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -242,7 +242,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   .pb-fl { font-size: 8pt; color: #888; font-weight: 700; text-transform: uppercase; }
   .pb-fv { font-size: 10pt; border-bottom: 1pt solid #ccc; padding-bottom: 3pt; min-height: 16pt; }
   .pb-box { border: 1pt solid #ccc; border-radius: 3pt; padding: 6pt 8pt; min-height: 56pt; font-size: 10pt; line-height: 1.5; margin-bottom: 4pt; }
-  .pb-firmas { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14pt; margin-top: 14pt; }
+  .pb-firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 14pt; margin-top: 14pt; }
   .pb-firma { display: flex; flex-direction: column; align-items: center; gap: 4pt; }
   .pb-firma-line { width: 100%; border-bottom: 1.5pt solid #333; height: 28pt; }
   .pb-firma-lbl { font-size: 8pt; font-weight: 700; text-transform: uppercase; color: #444; text-align: center; }
@@ -380,9 +380,9 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   <div class="topbar">
     <div class="topbar-left">
       <div class="logo-mark">CA</div>
-      <div><div class="app-title">CALCAR Mantenimiento</div><div class="app-sub">Planta Tarariras — CRM v3</div></div>
+      <div><div class="app-title">CALCAR — Gestión de Mantenimiento</div><div class="app-sub">Planta Tarariras</div></div>
     </div>
-    <span class="badge b-green">v3.2</span>
+    <span class="badge b-green">v3.3</span>
     <div style="display:flex;align-items:center;gap:8px;margin-left:12px">
       <span style="font-size:12px;color:#888" id="topbar-user"></span>
       <button onclick="doLogout()" class="btn-sec" style="padding:5px 10px;font-size:12px"><i class="ti ti-logout"></i> Salir</button>
@@ -880,7 +880,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       </div>
       <div class="form-section">Datos del trabajo</div>
       <div class="form-group"><label class="form-label">Equipo</label><select class="form-input" id="ot-equipo"><option value="">— seleccioná —</option></select></div>
-      <div class="form-group"><label class="form-label">Técnico responsable</label><input type="text" class="form-input" id="ot-tec" placeholder="Nombre del técnico"></div>
+      <div class="form-group"><label class="form-label">Funcionario</label><input type="text" class="form-input" id="ot-tec" placeholder="Nombre del funcionario"></div>
       <div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="ot-tipo"><option>Correctivo</option><option>Predictivo</option></select></div>
       <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="ot-prio"><option>Normal</option><option>Alta</option><option>Urgente</option><option>Baja</option></select></div>
       <div class="form-group"><label class="form-label">Estado</label><select class="form-input" id="ot-estado"><option>Pendiente</option><option>En proceso</option><option>Completada</option><option>Cancelada</option></select></div>
@@ -1553,9 +1553,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="pb-box"></div>
       <div class="pb-sec">Firmas</div>
       <div class="pb-firmas">
-        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Responsable de emisión</div><div class="pb-firma-sub">Nombre / Aclaración</div></div>
-        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Proveedor / Ejecutor</div><div class="pb-firma-sub">Nombre / Aclaración</div></div>
-        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Jefe de Mantenimiento</div><div class="pb-firma-sub">Aprobación</div></div>
+        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Responsable de aprobación</div><div class="pb-firma-sub">Nombre / Aclaración</div></div>
+        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Supervisor Mantenimiento</div><div class="pb-firma-sub">Aprobación</div></div>
       </div>
     </div>
 
@@ -2137,7 +2136,7 @@ function printOTE(idx){
   g('p-info').innerHTML=pf('Equipo',o.eq)+pf('Proveedor',o.prov)+pf('RUT proveedor',o.rutProv)+pf('Tipo de trabajo',o.tipo)+pf('Estado',ppbEst(o.estado))+pf('Conforme',ppbConf(o.conf))+pf('Presupuesto',o.presup?'$'+o.presup:'—')+pf('Costo real',o.costo?'$'+o.costo:'—')+pf('N° Factura',o.factura||'—')+pf('Fecha cierre',o.cierre||'—');
   g('p-desc').textContent=o.desc||'(sin descripción)';
   g('p-obs-wrap').style.display='none';
-  g('p-firmas').innerHTML=firma('Responsable de emisión','Nombre / Aclaración')+firma('Proveedor / Ejecutor','Nombre / Aclaración')+firma('Jefe de Mantenimiento','Aprobación');
+  g('p-firmas').innerHTML=firma('Responsable de aprobación','Nombre / Aclaración')+firma('Supervisor Mantenimiento','Nombre / Aclaración');
   g('print-ver').classList.remove('printing');
   g('print-area').classList.add('printing');
   window.print();
@@ -2163,7 +2162,7 @@ function printOT(idx){
     pf('Hora de inicio',o.horaIni||'—')+
     pf('Hora de finalización',o.horaFin||'—')+
     pf('','');
-  g('p-desc').textContent=o.desc||'(sin descripción)';
+  g('p-desc').textContent=o.desc||'';
   g('p-obs-wrap').style.display='';
   g('p-obs').textContent=o.obs||'';
   g('p-firmas').innerHTML=
