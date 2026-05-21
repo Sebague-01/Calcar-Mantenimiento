@@ -473,8 +473,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     </div>
     <div class="table-wrap">
       <table class="data-table">
-        <thead><tr><th>Código</th><th>Nombre</th><th>Sector</th><th>Área</th><th>Marca / Modelo</th><th>Criticidad</th><th>Estado</th></tr></thead>
-        <tbody id="tb-eq"><tr><td colspan="7"><div class="empty"><i class="ti ti-engine"></i>Sin equipos.</div></td></tr></tbody>
+        <thead><tr><th>Código</th><th>Nombre</th><th>Sector</th><th>Área</th><th>Marca / Modelo</th><th>Criticidad</th><th>Estado</th><th style="width:120px"></th></tr></thead>
+        <tbody id="tb-eq"><tr><td colspan="8"><div class="empty"><i class="ti ti-engine"></i>Sin equipos.</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -2201,17 +2201,24 @@ function renderOT(arr){
 }
 function renderEq(arr){
   const tb=g('tb-eq');
-  if(!arr.length){tb.innerHTML='<tr><td colspan="7"><div class="empty"><i class="ti ti-engine"></i>Sin equipos.</div></td></tr>';return;}
+  if(!arr.length){tb.innerHTML='<tr><td colspan="8"><div class="empty"><i class="ti ti-engine"></i>Sin equipos.</div></td></tr>';return;}
   const estMap={'Activo':'b-green','Fuera de servicio':'b-red','En reparación':'b-amber'};
-  tb.innerHTML=arr.map(e=>'<tr>'
-    +'<td><span class="mono">'+e.cod+'</span></td>'
-    +'<td>'+e.nom+'</td>'
-    +'<td style="color:#888;font-size:12px">'+(e.sector||'—')+'</td>'
-    +'<td style="color:#888;font-size:12px">'+(e.area||'—')+'</td>'
-    +'<td style="font-size:12px">'+(e.marca||'')+(e.modelo?' <span style="color:#aaa">'+e.modelo+'</span>':'')+((!e.marca&&!e.modelo)?'—':'')+'</td>'
-    +'<td>'+bCrit(e.crit)+'</td>'
-    +'<td><span class="badge '+(estMap[e.estado]||'b-gray')+'">'+(e.estado||'Activo')+'</span></td>'
-    +'</tr>').join('');
+  tb.innerHTML=arr.map(e=>{
+    const mi=S.eq.findIndex(x=>x.id===e.id);
+    return '<tr>'
+      +'<td><span class="mono">'+e.cod+'</span></td>'
+      +'<td>'+e.nom+'</td>'
+      +'<td style="color:#888;font-size:12px">'+(e.sector||'—')+'</td>'
+      +'<td style="color:#888;font-size:12px">'+(e.area||'—')+'</td>'
+      +'<td style="font-size:12px">'+(e.marca||'')+(e.modelo?' <span style="color:#aaa">'+e.modelo+'</span>':'')+((!e.marca&&!e.modelo)?'—':'')+'</td>'
+      +'<td>'+bCrit(e.crit)+'</td>'
+      +'<td><span class="badge '+(estMap[e.estado]||'b-gray')+'">'+(e.estado||'Activo')+'</span></td>'
+      +'<td style="white-space:nowrap">'
+        +'<button onclick="editEq('+mi+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">Editar</button>'
+        +'<button onclick="deleteEq('+mi+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit">Eliminar</button>'
+      +'</td>'
+      +'</tr>';
+  }).join('');
 }
 function renderProv(arr){
   const tb=g('tb-prov');
@@ -3399,6 +3406,46 @@ async function saveOCEdit(){
 }
 
 // ══════════════════════════════════════
+// ── EDITAR / ELIMINAR EQUIPOS ──
+async function editEq(idx){
+  const e=S.eq[idx];
+  g('eq-cod').value=e.cod;
+  g('eq-nom').value=e.nom;
+  g('eq-sector').value=e.sector||'Sector Viejo';
+  g('eq-area').value=e.area||'Otro';
+  g('eq-ubic').value=e.ubic||'';
+  g('eq-crit').value=e.crit||'Media';
+  g('eq-estado').value=e.estado||'Activo';
+  g('eq-marca').value=e.marca||'';
+  g('eq-modelo').value=e.modelo||'';
+  g('eq-anio').value=e.anio||'';
+  g('eq-serie').value=e.serie||'';
+  g('eq-cod').readOnly=true; g('eq-cod').style.opacity='0.6';
+  const btn=g('m-equipo').querySelector('.btn-primary');
+  btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
+  btn.onclick=async()=>{
+    const row={nombre:v('eq-nom'),sector:v('eq-sector'),area:v('eq-area'),ubicacion_tecnica:v('eq-ubic')||null,criticidad:v('eq-crit'),estado_operativo:v('eq-estado'),marca:v('eq-marca')||null,modelo:v('eq-modelo')||null,anio_instalacion:v('eq-anio')||null,numero_serie:v('eq-serie')||null};
+    loading(true);
+    const {error}=await sb.from('equipos').update(row).eq('id',e.id);
+    loading(false);
+    if(error){dbErr(error,'guardar equipo');return;}
+    g('eq-cod').readOnly=false; g('eq-cod').style.opacity='1';
+    btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar'; btn.onclick=saveEq;
+    closeModal('m-equipo'); await loadEquipos();
+  };
+  g('m-equipo').classList.add('open');
+}
+
+async function deleteEq(idx){
+  const e=S.eq[idx];
+  if(!confirm('¿Eliminar el equipo "'+e.nom+'" ('+e.cod+')?\n\nEsta acción no se puede deshacer.')) return;
+  loading(true);
+  const {error}=await sb.from('equipos').delete().eq('id',e.id);
+  loading(false);
+  if(error){dbErr(error,'eliminar equipo');return;}
+  await loadEquipos();
+}
+
 // EDITAR OTE / OTC / EJECUCIÓN OTP
 // ══════════════════════════════════════
 
