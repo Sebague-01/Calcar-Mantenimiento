@@ -2041,25 +2041,75 @@ function updateCodDisplay(tipo){
 
 async function openModal(id){
   if(id==='m-ote'){
+    // Resetear título y botón
+    g('m-ote').querySelector('.modal-title').textContent='Nueva Orden de Trabajo Externa';
+    const btn=g('m-ote').querySelector('.btn-primary');
+    btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar OTE';
+    btn.onclick=saveOTE;
+    // Limpiar campos
+    clr(['ote-presup','ote-costo','ote-desc','ote-cierre','ote-factura','ote-rut-prov']);
+    g('ote-tipo').value='Mecanizado';
+    g('ote-estado').value='Pendiente';
+    g('ote-conf').value='N/A';
+    g('ote-equipo').value='';
+    g('ote-prov').value='';
+    // Cargar número y fecha
     g('ote-num').value=await nextNum('ote','numero','OTE');
     g('ote-fecha').value=tod();
     fillSel('ote-equipo',S.eq,'nom');
-    fillProvSel(); updateCodDisplay('ote'); g('ote-rut-prov').value='';
+    fillProvSel(); updateCodDisplay('ote');
   }
   if(id==='m-ot'){
+    // Resetear título y botón
+    g('m-ot').querySelector('.modal-title').textContent='Nueva Orden de Trabajo Correctiva';
+    const btn=g('m-ot').querySelector('.btn-primary');
+    btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar OTC';
+    btn.onclick=saveOT;
+    // Limpiar campos
+    clr(['ot-tec','ot-hs','ot-hora-ini','ot-hora-fin','ot-desc','ot-obs']);
+    g('ot-tipo').value='Correctivo';
+    g('ot-prio').value='Normal';
+    g('ot-estado').value='Pendiente';
+    g('ot-equipo').value='';
+    // Cargar número y fecha
     g('ot-num').value=await nextNum('otc','numero','OTC');
     g('ot-fecha').value=tod();
     fillSel('ot-equipo',S.eq,'nom');
     updateCodDisplay('otc');
   }
+  if(id==='m-equipo'){
+    // Resetear título, botón y campo código
+    g('m-equipo').querySelector('.modal-title').textContent='Nuevo equipo';
+    const btn=g('m-equipo').querySelector('.btn-primary');
+    btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar';
+    btn.onclick=saveEq;
+    // Desbloquear código y limpiar todos los campos
+    g('eq-cod').readOnly=false; g('eq-cod').style.opacity='1';
+    clr(['eq-cod','eq-nom','eq-ubic','eq-marca','eq-modelo','eq-anio','eq-serie']);
+    g('eq-sector').value='Sector Viejo';
+    g('eq-area').value='Otro';
+    g('eq-crit').value='Media';
+    g('eq-estado').value='Activo';
+    g('m-equipo').classList.add('open'); return;
+  }
   if(id==='m-mov'){ openMovModal(); return; }
   if(id==='m-oc'){ openOCModal(); return; }
-  if(id==='m-inst'){ g('m-inst').classList.add('open'); return; }
+  if(id==='m-inst'){
+    // Resetear modal instrucción
+    g('m-inst').querySelector('.modal-title').textContent='Nueva instrucción de mantenimiento';
+    const btn=g('m-inst').querySelector('.btn-primary');
+    btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar instrucción';
+    btn.onclick=saveInst;
+    clr(['inst-cod','inst-resumen','inst-proc']);
+    g('m-inst').classList.add('open'); return;
+  }
   if(id==='m-estado-tarea'){ g('m-estado-tarea').classList.add('open'); return; }
   if(id==='m-tarea'){ openTareaModal(); return; }
   g(id).classList.add('open');
 }
-function closeModal(id){g(id).classList.remove('open');}
+function closeModal(id){
+  g(id).classList.remove('open');
+}
 
 // RUT automático por proveedor
 function fillProvSel(){
@@ -3019,15 +3069,27 @@ function getOCItems(){
 }
 
 async function openOCModal(){
+  // Resetear título y botón
+  g('m-oc').querySelector('.modal-title').textContent='Nueva Orden de Compra';
+  const btn=g('m-oc').querySelector('.btn-primary');
+  btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar OC';
+  btn.onclick=saveOC;
+  editOCIdx=null;
+  // Cargar proveedores
   const sel=g('oc-prov');
   sel.innerHTML='<option value="">— seleccioná —</option>';
   S.prov.forEach(p=>{
     const o=document.createElement('option');
     o.value=p.emp; o.textContent=p.emp; o.dataset.rut=p.rut||''; sel.appendChild(o);
   });
+  // Limpiar campos
   g('oc-num').value='OC-M-'+String(S.oc.length+1).padStart(4,'0');
   g('oc-fecha').value=tod();
   g('oc-rut').value='';
+  clr(['oc-ot','oc-pago','oc-entrega','oc-lugar','oc-obs']);
+  g('oc-moneda').value='UYU';
+  g('oc-iva').value='22';
+  g('oc-estado').value='Borrador';
   g('oc-items-container').innerHTML='';
   ocItemCount=0;
   addOCItem(); addOCItem();
