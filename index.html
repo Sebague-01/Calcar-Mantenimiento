@@ -903,7 +903,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="modal-header"><div class="modal-title">Nuevo equipo</div><button class="modal-close" onclick="closeModal('m-equipo')"><i class="ti ti-x"></i></button></div>
     <div class="form-grid">
       <div class="form-section">Identificación</div>
-      <div class="form-group"><label class="form-label">Código</label><input type="text" class="form-input mono" id="eq-cod" placeholder="ej: MB1000"></div>
+      <div class="form-group"><label class="form-label">Código <span class="form-optional">(opcional — se genera automáticamente)</span></label><input type="text" class="form-input mono" id="eq-cod" placeholder="ej: MB1000 — dejar vacío para generar"></div>
       <div class="form-group"><label class="form-label">Estado operativo</label>
         <select class="form-input" id="eq-estado"><option>Activo</option><option>Fuera de servicio</option><option>En reparación</option></select>
       </div>
@@ -1703,7 +1703,19 @@ async function loadEquipos(){
 
 async function saveEq(){
   const nom=v('eq-nom').trim(); if(!nom){alert('Ingresá un nombre.');return;}
-  const row={codigo:v('eq-cod')||'EQ-'+String(S.eq.length+1).padStart(3,'0'),nombre:nom,sector:v('eq-sector'),area:v('eq-area'),ubicacion_tecnica:v('eq-ubic')||null,criticidad:v('eq-crit'),estado_operativo:v('eq-estado'),marca:v('eq-marca')||null,modelo:v('eq-modelo')||null,anio_instalacion:v('eq-anio')||null,numero_serie:v('eq-serie')||null};
+  let cod=v('eq-cod').trim();
+  if(!cod){
+    // Generar código único que no exista en Supabase
+    let n=S.eq.length+1;
+    let exists=true;
+    while(exists){
+      cod='EQ-'+String(n).padStart(3,'0');
+      const {data}=await sb.from('equipos').select('codigo').eq('codigo',cod).limit(1);
+      exists=data&&data.length>0;
+      n++;
+    }
+  }
+  const row={codigo:cod,nombre:nom,sector:v('eq-sector'),area:v('eq-area'),ubicacion_tecnica:v('eq-ubic')||null,criticidad:v('eq-crit'),estado_operativo:v('eq-estado'),marca:v('eq-marca')||null,modelo:v('eq-modelo')||null,anio_instalacion:v('eq-anio')||null,numero_serie:v('eq-serie')||null};
   loading(true);
   const {error}=await sb.from('equipos').insert(row);
   loading(false);
