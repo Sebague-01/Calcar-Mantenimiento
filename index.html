@@ -628,23 +628,32 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="stock-view active" id="sv-catalogo">
       <div class="toolbar">
         <div class="toolbar-left">
-          <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Buscar ítem..." id="s-cat" oninput="filterCat()"></div>
+          <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Buscar producto..." id="s-cat" oninput="filterCat()"></div>
           <select id="f-cat-cat" onchange="filterCat()">
             <option value="">Todas las categorías</option>
-            <option>Repuesto</option><option>Insumo consumible</option><option>Herramienta</option>
-            <option>Químico / lubricante</option><option>Material edilicio</option>
+            <option value="LUB">Lubricantes</option>
+            <option value="QUI">Químicos</option>
+            <option value="REP">Repuestos</option>
+            <option value="HER">Herramientas</option>
+            <option value="CON">Consumibles</option>
+          </select>
+          <select id="f-cat-estado" onchange="filterCat()">
+            <option value="">Todos los estados</option>
+            <option value="OK">Stock OK</option>
+            <option value="Bajo">Bajo stock</option>
+            <option value="Sin">Sin stock</option>
           </select>
         </div>
-        <button class="btn-primary" onclick="openModal('m-item')"><i class="ti ti-plus"></i> Nuevo ítem</button>
+        <button class="btn-primary" onclick="openModal('m-item')"><i class="ti ti-plus"></i> Nuevo producto</button>
       </div>
       <div class="table-wrap">
         <table class="data-table">
           <thead><tr>
-            <th>Código</th><th>Descripción</th><th>Categoría</th><th>Unidad</th>
-            <th style="text-align:right">Stock actual</th><th style="text-align:right">Stock mín.</th>
-            <th style="width:90px">Estado</th><th style="width:52px"></th>
+            <th>Código</th><th>Nombre</th><th>Marca</th><th>Categoría</th>
+            <th style="text-align:right">Stock actual</th><th style="text-align:right">Mín / Reord</th>
+            <th>Ubicación</th><th>Últ. Lote</th><th>Vencimiento</th><th style="width:90px">Estado</th><th style="width:52px"></th>
           </tr></thead>
-          <tbody id="tb-cat"><tr><td colspan="8"><div class="empty"><i class="ti ti-package"></i>Sin ítems. Agregá el primero al catálogo.</div></td></tr></tbody>
+          <tbody id="tb-cat"><tr><td colspan="11"><div class="empty"><i class="ti ti-package"></i>Sin productos en catálogo. Agregá el primero.</div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -653,15 +662,17 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="stock-view" id="sv-movimientos">
       <div class="toolbar">
         <div class="toolbar-left">
-          <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Buscar ítem o referencia..." id="s-mov" oninput="filterMov()"></div>
+          <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Buscar producto o referencia..." id="s-mov" oninput="filterMov()"></div>
           <select id="f-mov-tipo" onchange="filterMov()">
             <option value="">Todos los tipos</option>
             <option>Stock inicial</option>
             <option>Entrada — Compra</option>
+            <option>Entrada — Devolución</option>
             <option>Salida — OT</option>
             <option>Salida — OTE</option>
-            <option>Salida — Sin orden</option>
-            <option>Ajuste</option>
+            <option>Salida — Uso directo</option>
+            <option>Ajuste +</option>
+            <option>Ajuste -</option>
           </select>
         </div>
         <button class="btn-primary" onclick="openModal('m-mov')"><i class="ti ti-plus"></i> Registrar movimiento</button>
@@ -669,10 +680,10 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="table-wrap">
         <table class="data-table">
           <thead><tr>
-            <th>Fecha</th><th>Ítem</th><th>Tipo</th>
-            <th style="text-align:right">Cantidad</th><th>Referencia</th><th>Responsable</th>
+            <th>Fecha</th><th>Producto</th><th>Tipo</th>
+            <th style="text-align:right">Cantidad</th><th>Lote</th><th>Referencia</th><th>Responsable</th>
           </tr></thead>
-          <tbody id="tb-mov"><tr><td colspan="6"><div class="empty"><i class="ti ti-arrows-exchange"></i>Sin movimientos registrados.</div></td></tr></tbody>
+          <tbody id="tb-mov"><tr><td colspan="7"><div class="empty"><i class="ti ti-arrows-exchange"></i>Sin movimientos registrados.</div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -978,29 +989,93 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
 <!-- ÍTEM DE STOCK -->
 <div class="modal-overlay" id="m-item">
-  <div class="modal-box narrow">
-    <div class="modal-header"><div class="modal-title">Nuevo ítem de stock</div><button class="modal-close" onclick="closeModal('m-item')"><i class="ti ti-x"></i></button></div>
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">Nuevo producto / ítem de stock</div><button class="modal-close" onclick="closeModal('m-item')"><i class="ti ti-x"></i></button></div>
     <div class="form-grid">
-      <div class="form-group"><label class="form-label">Código</label><input type="text" class="form-input mono" id="item-cod" placeholder="REP-001"></div>
-      <div class="form-group"><label class="form-label">Categoría</label>
+      <!-- Fila 1: Código y Categoría -->
+      <div class="form-group"><label class="form-label">Código interno</label><input type="text" class="form-input mono" id="item-cod" placeholder="LUB-HID-0001"></div>
+      <div class="form-group"><label class="form-label">Categoría principal</label>
         <select class="form-input" id="item-cat">
-          <option>Repuesto</option><option>Insumo consumible</option><option>Herramienta</option>
-          <option>Químico / lubricante</option><option>Material edilicio</option>
+          <option value="LUB">Lubricantes</option>
+          <option value="QUI">Químicos</option>
+          <option value="REP">Repuestos</option>
+          <option value="HER">Herramientas</option>
+          <option value="CON">Consumibles</option>
         </select>
       </div>
-      <div class="form-group full"><label class="form-label">Descripción</label><input type="text" class="form-input" id="item-desc" placeholder="ej: Rodamiento SKF 6205"></div>
-      <div class="form-group"><label class="form-label">Unidad de medida</label>
+      <!-- Fila 2: Subcategoría -->
+      <div class="form-group full"><label class="form-label">Subcategoría</label>
+        <select class="form-input" id="item-subcat">
+          <option value="">— seleccionar —</option>
+          <optgroup label="Lubricantes">
+            <option value="LUB-HID">Hidráulicos</option>
+            <option value="LUB-COM">Compresores</option>
+            <option value="LUB-ENG">Engranajes</option>
+            <option value="LUB-REF">Refrigeración</option>
+            <option value="LUB-GRA">Grasas</option>
+          </optgroup>
+          <optgroup label="Químicos">
+            <option value="QUI-LIM">Limpieza</option>
+            <option value="QUI-DES">Desinfectantes</option>
+            <option value="QUI-TRA">Tratamiento de agua</option>
+            <option value="QUI-SOL">Solventes</option>
+          </optgroup>
+          <optgroup label="Repuestos">
+            <option value="REP-MEC">Mecánicos</option>
+            <option value="REP-ELE">Eléctricos</option>
+            <option value="REP-NEU">Neumáticos</option>
+            <option value="REP-HID">Hidráulicos</option>
+          </optgroup>
+          <optgroup label="Herramientas">
+            <option value="HER-MAN">Manuales</option>
+            <option value="HER-ELE">Eléctricas</option>
+            <option value="HER-MED">Medición/Calibración</option>
+          </optgroup>
+          <optgroup label="Consumibles">
+            <option value="CON-ELE">Eléctricos</option>
+            <option value="CON-SOL">Soldadura</option>
+            <option value="CON-FIJ">Fijación</option>
+            <option value="CON-SEG">Seguridad (EPP)</option>
+          </optgroup>
+        </select>
+      </div>
+      <!-- Fila 3: Nombre comercial y Marca -->
+      <div class="form-group"><label class="form-label">Nombre comercial</label><input type="text" class="form-input" id="item-nombre" placeholder="ej: VESTA FG-32"></div>
+      <div class="form-group"><label class="form-label">Marca</label><input type="text" class="form-input" id="item-marca" placeholder="ej: Quaker Houghton"></div>
+      <!-- Fila 4: Modelo y Certificación -->
+      <div class="form-group"><label class="form-label">Modelo/Especificación <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-modelo" placeholder="ej: ISO 68, FG-32"></div>
+      <div class="form-group"><label class="form-label">Certificación <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-cert" placeholder="ej: NSF H1, Halal"></div>
+      <!-- Fila 5: Unidad y Presentación -->
+      <div class="form-group"><label class="form-label">Unidad base</label>
         <select class="form-input" id="item-unidad">
-          <option>u</option><option>L</option><option>kg</option><option>m</option><option>Caja</option><option>Juego</option>
+          <option>u</option><option>Bidón</option><option>Balde</option><option>Tambor</option>
+          <option>L</option><option>kg</option><option>m</option><option>Caja</option><option>Juego</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Stock mínimo</label><input type="number" class="form-input" id="item-min" placeholder="ej: 2" min="0"></div>
-      <div class="form-group full"><label class="form-label">Equipo asociado <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-equipo" placeholder="ej: Pasteurizador #1"></div>
-      <div class="form-group full"><label class="form-label">Observaciones <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-obs" placeholder="Marca, proveedor habitual, ubicación en depósito..."></div>
+      <div class="form-group"><label class="form-label">Presentación <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-present" placeholder="ej: 20 kg, 18 L"></div>
+      <!-- Fila 6: Stock mínimo y Punto de reorden -->
+      <div class="form-group"><label class="form-label">Stock mínimo</label><input type="number" class="form-input" id="item-min" placeholder="ej: 1" min="0" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Punto reorden</label><input type="number" class="form-input" id="item-reord" placeholder="ej: 2" min="0" step="0.01"></div>
+      <!-- Fila 7: Aplicación -->
+      <div class="form-group full"><label class="form-label">Aplicación principal <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-aplic" placeholder="ej: Sistemas hidráulicos con contacto incidental alimentos"></div>
+      <!-- Fila 8: Proveedor y Precio -->
+      <div class="form-group"><label class="form-label">Proveedor principal <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-prov" placeholder="ej: LUBRICENTRO SA"></div>
+      <div class="form-group"><label class="form-label">Precio referencia <span class="form-optional">(opcional)</span></label><input type="number" class="form-input" id="item-precio" placeholder="ej: 125.00" min="0" step="0.01"></div>
+      <!-- Fila 9: Ubicación por defecto -->
+      <div class="form-group"><label class="form-label">Ubicación almacén <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-ubic" placeholder="ej: Estante A2"></div>
+      <div class="form-group"><label class="form-label">Estado</label>
+        <select class="form-input" id="item-estado">
+          <option>Activo</option>
+          <option>Inactivo</option>
+          <option>Descontinuado</option>
+        </select>
+      </div>
+      <!-- Fila 10: Observaciones -->
+      <div class="form-group full"><label class="form-label">Observaciones <span class="form-optional">(opcional)</span></label><textarea class="form-input" id="item-obs" rows="2" placeholder="Equivalencias, proveedores alternativos, notas especiales..."></textarea></div>
     </div>
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-item')">Cancelar</button>
-      <button class="btn-primary" onclick="saveItem()"><i class="ti ti-device-floppy"></i> Guardar ítem</button>
+      <button class="btn-primary" onclick="saveItem()"><i class="ti ti-device-floppy"></i> Guardar producto</button>
     </div>
   </div>
 </div>
@@ -1015,26 +1090,50 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <select class="form-input" id="mov-tipo" onchange="onMovTipoChange()">
           <option>Stock inicial</option>
           <option>Entrada — Compra</option>
+          <option>Entrada — Devolución</option>
           <option>Salida — OT</option>
           <option>Salida — OTE</option>
-          <option>Salida — Sin orden</option>
-          <option>Ajuste</option>
+          <option>Salida — Uso directo</option>
+          <option>Ajuste +</option>
+          <option>Ajuste -</option>
         </select>
       </div>
-      <div class="form-group full"><label class="form-label">Ítem</label>
+      <div class="form-group full"><label class="form-label">Ítem / Producto</label>
         <select class="form-input" id="mov-item"><option value="">— seleccioná —</option></select>
       </div>
-      <div class="form-group"><label class="form-label">Cantidad</label><input type="number" class="form-input" id="mov-cant" placeholder="ej: 3" min="0.001" step="any"></div>
+      <div class="form-group"><label class="form-label">Cantidad</label><input type="number" class="form-input" id="mov-cant" placeholder="ej: 2" min="0.001" step="any"></div>
       <div class="form-group"><label class="form-label">Responsable</label><input type="text" class="form-input" id="mov-resp" placeholder="Nombre"></div>
+      
+      <!-- Campos específicos para INGRESOS (ocultos por defecto) -->
+      <div id="mov-ingreso-fields" style="display:none; grid-column: 1/-1; display:grid; grid-template-columns: repeat(2,1fr); gap:12px;">
+        <div class="form-group"><label class="form-label">N° de OC <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="mov-oc" placeholder="OC-2026-0045"></div>
+        <div class="form-group"><label class="form-label">Proveedor <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="mov-prov" placeholder="Nombre del proveedor"></div>
+        <div class="form-group"><label class="form-label">Lote fabricante <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="mov-lote" placeholder="99837"></div>
+        <div class="form-group"><label class="form-label">Fecha fabricación <span class="form-optional">(opcional)</span></label><input type="date" class="form-input" id="mov-fecha-fab"></div>
+        <div class="form-group"><label class="form-label">Fecha vencimiento <span class="form-optional">(opcional)</span></label><input type="date" class="form-input" id="mov-fecha-venc"></div>
+        <div class="form-group"><label class="form-label">Ubicación física <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="mov-ubicacion" placeholder="Estante A2"></div>
+        <div class="form-group"><label class="form-label">N° Remito <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="mov-remito" placeholder="REM-12345"></div>
+        <div class="form-group"><label class="form-label">N° Factura <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="mov-factura" placeholder="FAC-A-7890"></div>
+        <div class="form-group"><label class="form-label">Precio unitario <span class="form-optional">(opcional)</span></label><input type="number" class="form-input" id="mov-precio-unit" placeholder="125.00" min="0" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Estado ingreso</label>
+          <select class="form-input" id="mov-estado-ing">
+            <option>Recibido</option>
+            <option>Inspeccionado</option>
+            <option>Aprobado</option>
+            <option>Rechazado</option>
+          </select>
+        </div>
+      </div>
+
       <div class="form-group full" id="mov-ref-group">
         <label class="form-label" id="mov-ref-label">Referencia <span class="form-optional">(opcional)</span></label>
-        <input type="text" class="form-input" id="mov-ref" placeholder="N° de OT, OTE, factura, etc.">
+        <input type="text" class="form-input" id="mov-ref" placeholder="N° de OT, OTE, documento, etc.">
       </div>
-      <div class="form-group full"><label class="form-label">Nota <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="mov-nota" placeholder="Descripción breve del movimiento"></div>
+      <div class="form-group full"><label class="form-label">Observaciones <span class="form-optional">(opcional)</span></label><textarea class="form-input" id="mov-nota" rows="2" placeholder="Descripción, condición del producto, incidencias..."></textarea></div>
     </div>
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-mov')">Cancelar</button>
-      <button class="btn-primary" onclick="saveMov()"><i class="ti ti-device-floppy"></i> Registrar</button>
+      <button class="btn-primary" onclick="saveMov()"><i class="ti ti-device-floppy"></i> Registrar movimiento</button>
     </div>
   </div>
 </div>
@@ -1140,7 +1239,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div>
           <div class="pp-company">CALCAR</div>
           <div class="pp-subco">NOFROCK SAS &nbsp;·&nbsp; RUT: 219921200017</div>
-          <div class="pp-plant">Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
+          <div class="pp-plant">Camino Méndez 2350 — Montevideo</div>
           <div class="pp-plant">Departamento de Mantenimiento — Mantenimiento Preventivo</div>
         </div>
       </div>
@@ -1261,7 +1360,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="oc-empresa-left">
         <div class="oc-empresa-name">NOFROCK SAS</div>
         <div class="oc-empresa-sub">RUT: 219921200017</div>
-        <div class="oc-empresa-sub">Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
+        <div class="oc-empresa-sub">Camino Méndez 2350 — Montevideo</div>
         <div class="oc-empresa-sub">Departamento de Mantenimiento — CALCAR</div>
       </div>
       <div class="oc-empresa-right">
@@ -1441,7 +1540,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div>
           <div class="pp-company">CALCAR</div>
           <div class="pp-subco">NOFROCK SAS &nbsp;·&nbsp; RUT: 219921200017</div>
-          <div class="pp-plant">Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
+          <div class="pp-plant">Camino Méndez 2350 — Montevideo</div>
           <div class="pp-plant">Departamento de Mantenimiento</div>
         </div>
       </div>
@@ -1481,7 +1580,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div>
           <div class="pp-company">CALCAR</div>
           <div class="pp-subco">NOFROCK SAS &nbsp;·&nbsp; RUT: 219921200017</div>
-          <div class="pp-plant">Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
+          <div class="pp-plant">Camino Méndez 2350 — Montevideo</div>
         </div>
       </div>
       <div style="text-align:right">
@@ -1516,7 +1615,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div>
           <div class="pp-company">CALCAR</div>
           <div class="pp-subco">NOFROCK SAS &nbsp;·&nbsp; RUT: 219921200017</div>
-          <div class="pp-plant">Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
+          <div class="pp-plant">Camino Méndez 2350 — Montevideo</div>
           <div class="pp-plant">Departamento de Mantenimiento</div>
         </div>
       </div>
@@ -1859,22 +1958,63 @@ async function filterOT(){
 async function loadItems(q='',cat=''){
   let query=sb.from('stock_actual').select('*').order('codigo');
   if(cat) query=query.eq('categoria',cat);
-  if(q) query=query.or('codigo.ilike.%'+q+'%,descripcion.ilike.%'+q+'%');
+  if(q) query=query.or('codigo.ilike.%'+q+'%,nombre_comercial.ilike.%'+q+'%,marca.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar stock');return;}
-  S.items=data.map(r=>({id:r.id,cod:r.codigo,cat:r.categoria,desc:r.descripcion,unidad:r.unidad,min:r.stock_min,equipo:r.equipo,obs:r.obs,actual:r.stock_actual}));
+  S.items=data.map(r=>({
+    id:r.id,
+    cod:r.codigo,
+    cat:r.categoria,
+    subcat:r.subcategoria,
+    desc:r.nombre_comercial||r.descripcion,
+    marca:r.marca,
+    modelo:r.modelo,
+    cert:r.certificacion,
+    unidad:r.unidad,
+    present:r.presentacion,
+    min:r.stock_min,
+    reorden:r.punto_reorden,
+    aplicacion:r.aplicacion,
+    prov:r.proveedor_principal,
+    precio:r.precio_referencia,
+    ubicacion:r.ubicacion_almacen,
+    estado:r.estado,
+    obs:r.observaciones,
+    actual:r.stock_actual,
+    ultimo_lote:r.ultimo_lote,
+    fecha_vencimiento:r.fecha_vencimiento_proxima
+  }));
   renderCat(S.items);
 }
 
 async function saveItem(){
-  const desc=v('item-desc').trim(); if(!desc){alert('Ingresá una descripción.');return;}
-  const cod=v('item-cod').trim()||'IT-'+String(S.items.length+1).padStart(3,'0');
-  const row={codigo:cod,categoria:v('item-cat'),descripcion:desc,unidad:v('item-unidad'),stock_min:v('item-min')||0,equipo:v('item-equipo')||null,obs:v('item-obs')||null};
+  const nombre=v('item-nombre').trim(); if(!nombre){alert('Ingresá el nombre comercial del producto.');return;}
+  const cod=v('item-cod').trim(); if(!cod){alert('Ingresá el código interno del producto.');return;}
+  const cat=v('item-cat'); const subcat=v('item-subcat');
+  const row={
+    codigo:cod,
+    nombre_comercial:nombre,
+    marca:v('item-marca')||null,
+    categoria:cat,
+    subcategoria:subcat||null,
+    modelo:v('item-modelo')||null,
+    certificacion:v('item-cert')||null,
+    unidad:v('item-unidad'),
+    presentacion:v('item-present')||null,
+    stock_min:parseFloat(v('item-min'))||0,
+    punto_reorden:parseFloat(v('item-reord'))||0,
+    aplicacion:v('item-aplic')||null,
+    proveedor_principal:v('item-prov')||null,
+    precio_referencia:parseFloat(v('item-precio'))||null,
+    ubicacion_almacen:v('item-ubic')||null,
+    estado:v('item-estado'),
+    observaciones:v('item-obs')||null
+  };
   loading(true);
   const {error}=await sb.from('stock_items').insert(row);
   loading(false);
-  if(error){dbErr(error,'guardar ítem');return;}
-  closeModal('m-item'); clr(['item-cod','item-desc','item-min','item-equipo','item-obs']);
+  if(error){dbErr(error,'guardar producto');return;}
+  closeModal('m-item'); clr(['item-cod','item-nombre','item-marca','item-modelo','item-cert','item-present','item-min','item-reord','item-aplic','item-prov','item-precio','item-ubic','item-obs']);
   await loadItems();
 }
 
@@ -1889,23 +2029,63 @@ async function filterCat(){
 async function loadMovs(q='',tipo=''){
   let query=sb.from('stock_movimientos').select('*').order('created_at',{ascending:false}).limit(200);
   if(tipo) query=query.eq('tipo',tipo);
-  if(q) query=query.or('item_cod.ilike.%'+q+'%,descripcion.ilike.%'+q+'%,referencia.ilike.%'+q+'%');
+  if(q) query=query.or('item_cod.ilike.%'+q+'%,descripcion.ilike.%'+q+'%,referencia.ilike.%'+q+'%,lote_fabricante.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar movimientos');return;}
-  S.movs=data.map(r=>({id:r.id,fecha:r.fecha,item:r.item_cod,desc:r.descripcion,unidad:r.unidad,tipo:r.tipo,cant:r.cantidad,resp:r.responsable,ref:r.referencia,nota:r.nota}));
+  S.movs=data.map(r=>({
+    id:r.id,
+    fecha:r.fecha,
+    item:r.item_cod,
+    desc:r.descripcion,
+    unidad:r.unidad,
+    tipo:r.tipo,
+    cant:r.cantidad,
+    resp:r.responsable,
+    ref:r.referencia,
+    nota:r.nota,
+    lote:r.lote_fabricante
+  }));
   renderMov(S.movs);
 }
 
 async function saveMov(){
-  const itemCod=v('mov-item'); if(!itemCod){alert('Seleccioná un ítem.');return;}
+  const itemCod=v('mov-item'); if(!itemCod){alert('Seleccioná un producto.');return;}
   const cant=parseFloat(v('mov-cant')); if(!cant||cant<=0){alert('Ingresá una cantidad válida.');return;}
   const item=S.items.find(i=>i.cod===itemCod);
-  const row={fecha:v('mov-fecha'),item_cod:itemCod,descripcion:item?item.desc:'',unidad:item?item.unidad:'u',tipo:v('mov-tipo'),cantidad:cant,responsable:v('mov-resp')||null,referencia:v('mov-ref')||null,nota:v('mov-nota')||null};
+  const tipo=v('mov-tipo');
+  const esIngreso=tipo.startsWith('Entrada') || tipo.startsWith('Stock inicial') || tipo.startsWith('Ajuste +');
+  
+  const row={
+    fecha:v('mov-fecha'),
+    item_cod:itemCod,
+    descripcion:item?item.desc:'',
+    unidad:item?item.unidad:'u',
+    tipo:tipo,
+    cantidad:cant,
+    responsable:v('mov-resp')||null,
+    referencia:v('mov-ref')||null,
+    nota:v('mov-nota')||null
+  };
+  
+  // Campos adicionales si es un ingreso
+  if(esIngreso){
+    row.oc_referencia=v('mov-oc')||null;
+    row.proveedor=v('mov-prov')||null;
+    row.lote_fabricante=v('mov-lote')||null;
+    row.fecha_fabricacion=v('mov-fecha-fab')||null;
+    row.fecha_vencimiento=v('mov-fecha-venc')||null;
+    row.ubicacion_fisica=v('mov-ubicacion')||null;
+    row.remito=v('mov-remito')||null;
+    row.factura=v('mov-factura')||null;
+    row.precio_unitario=parseFloat(v('mov-precio-unit'))||null;
+    row.estado_ingreso=v('mov-estado-ing')||null;
+  }
+  
   loading(true);
   const {error}=await sb.from('stock_movimientos').insert(row);
   loading(false);
   if(error){dbErr(error,'guardar movimiento');return;}
-  closeModal('m-mov'); clr(['mov-resp','mov-ref','mov-nota','mov-cant']);
+  closeModal('m-mov'); clr(['mov-resp','mov-ref','mov-nota','mov-cant','mov-oc','mov-prov','mov-lote','mov-fecha-fab','mov-fecha-venc','mov-ubicacion','mov-remito','mov-factura','mov-precio-unit']);
   await Promise.all([loadItems(),loadMovs()]);
 }
 
@@ -2333,16 +2513,17 @@ function stockActual(cod){
 }
 
 // Badge de estado stock
-function stockBadge(actual, min){
+function stockBadge(actual, min, reorden){
   if(actual<=0) return '<span class="badge stock-badge-out">Sin stock</span>';
+  if(Number(reorden)>0 && actual<=Number(reorden)) return '<span class="badge stock-badge-low">Reordenar</span>';
   if(Number(min)>0 && actual<=Number(min)) return '<span class="badge stock-badge-low">Stock bajo</span>';
   return '<span class="badge stock-badge-ok">OK</span>';
 }
 
 // Badge tipo movimiento
 function movBadge(tipo){
-  const entrada=['Stock inicial','Entrada — Compra'];
-  const ajuste=['Ajuste'];
+  const entrada=['Stock inicial','Entrada — Compra','Entrada — Devolución','Ajuste +'];
+  const ajuste=['Ajuste +','Ajuste -'];
   if(entrada.includes(tipo)) return '<span class="badge b-green">'+tipo+'</span>';
   if(ajuste.includes(tipo)) return '<span class="badge b-blue">'+tipo+'</span>';
   return '<span class="badge b-red">'+tipo+'</span>';
@@ -2382,9 +2563,20 @@ function onMovTipoChange(){
   const tipo=v('mov-tipo');
   const lbl=g('mov-ref-label');
   const inp=g('mov-ref');
+  const ingresoFields=g('mov-ingreso-fields');
+  
+  // Determinar si es un ingreso y mostrar/ocultar campos correspondientes
+  const esIngreso=tipo.startsWith('Entrada') || tipo==='Stock inicial' || tipo==='Ajuste +';
+  if(esIngreso){
+    ingresoFields.style.display='grid';
+  }else{
+    ingresoFields.style.display='none';
+  }
+  
+  // Actualizar el label de referencia según el tipo
   if(tipo==='Salida — OT'){lbl.innerHTML='N° de OT asociada <span class="form-optional">(opcional)</span>';inp.placeholder='ej: OT-2026-0001';}
   else if(tipo==='Salida — OTE'){lbl.innerHTML='N° de OTE asociada <span class="form-optional">(opcional)</span>';inp.placeholder='ej: OTE-2026-0001';}
-  else if(tipo==='Entrada — Compra'){lbl.innerHTML='N° de orden de compra / factura <span class="form-optional">(opcional)</span>';inp.placeholder='ej: OC-2026-0001';}
+  else if(tipo==='Entrada — Compra'){lbl.innerHTML='N° de orden de compra <span class="form-optional">(opcional)</span>';inp.placeholder='ej: OC-2026-0045';}
   else{lbl.innerHTML='Referencia <span class="form-optional">(opcional)</span>';inp.placeholder='Referencia libre';}
 }
 
@@ -2396,17 +2588,26 @@ function openMovForItem(cod){
 // Render catálogo — usa actual del cache (calculado por la vista stock_actual)
 function renderCat(arr){
   const tb=g('tb-cat');
-  if(!arr.length){tb.innerHTML='<tr><td colspan="8"><div class="empty"><i class="ti ti-package"></i>Sin ítems.</div></td></tr>';return;}
+  if(!arr.length){tb.innerHTML='<tr><td colspan="11"><div class="empty"><i class="ti ti-package"></i>Sin productos en catálogo.</div></td></tr>';return;}
   tb.innerHTML=arr.map(it=>{
     const actual=it.actual||0;
+    const marca=it.marca||'—';
+    const subcat=it.subcat?'<span class="badge b-gray">'+it.subcat+'</span>':'<span style="color:#ccc">'+it.cat+'</span>';
+    const ubicacion=it.ubicacion||'—';
+    const lote=it.ultimo_lote||'—';
+    const venc=it.fecha_vencimiento?formatDate(it.fecha_vencimiento):'—';
+    const minReord=it.min+' / '+it.reorden;
     return '<tr>'
       +'<td><span class="mono">'+it.cod+'</span></td>'
       +'<td>'+it.desc+'</td>'
-      +'<td><span class="badge b-gray">'+it.cat+'</span></td>'
-      +'<td style="color:#888">'+it.unidad+'</td>'
+      +'<td style="color:#555;font-size:12px">'+marca+'</td>'
+      +'<td>'+subcat+'</td>'
       +'<td style="text-align:right"><span class="stock-num">'+actual+'</span></td>'
-      +'<td style="text-align:right;color:#888">'+it.min+'</td>'
-      +'<td>'+stockBadge(actual,it.min)+'</td>'
+      +'<td style="text-align:right;color:#888;font-size:12px">'+minReord+'</td>'
+      +'<td style="color:#888;font-size:12px">'+ubicacion+'</td>'
+      +'<td style="color:#888;font-size:11px;font-family:monospace">'+lote+'</td>'
+      +'<td style="color:#888;font-size:12px">'+venc+'</td>'
+      +'<td>'+stockBadge(actual,it.min,it.reorden)+'</td>'
       +'<td><button class="btn-print" onclick="openMovForItem(\''+it.cod+'\')" title="Registrar movimiento"><i class="ti ti-arrows-exchange"></i></button></td>'
       +'</tr>';
   }).join('');
@@ -2415,12 +2616,13 @@ function renderCat(arr){
 // Render movimientos
 function renderMov(arr){
   const tb=g('tb-mov');
-  if(!arr.length){tb.innerHTML='<tr><td colspan="6"><div class="empty"><i class="ti ti-arrows-exchange"></i>Sin movimientos.</div></td></tr>';return;}
+  if(!arr.length){tb.innerHTML='<tr><td colspan="7"><div class="empty"><i class="ti ti-arrows-exchange"></i>Sin movimientos registrados.</div></td></tr>';return;}
   tb.innerHTML=arr.map(m=>'<tr>'
     +'<td style="color:#888;white-space:nowrap">'+m.fecha+'</td>'
     +'<td><span class="mono" style="font-size:11px">'+m.item+'</span><div style="font-size:11px;color:#888">'+m.desc+'</div></td>'
     +'<td>'+movBadge(m.tipo)+'</td>'
     +'<td style="text-align:right">'+movCant(m)+'</td>'
+    +'<td style="font-size:11px;font-family:monospace;color:#555">'+(m.lote||'—')+'</td>'
     +'<td style="font-size:12px;color:#555">'+(m.ref||'—')+'</td>'
     +'<td style="font-size:12px;color:#555">'+(m.resp||'—')+'</td>'
     +'</tr>').join('');
