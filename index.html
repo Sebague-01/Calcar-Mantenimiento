@@ -292,19 +292,23 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   .prev-footer { display: flex; justify-content: space-between; font-size: 7pt; color: #aaa; border-top: 1pt solid #ddd; padding-top: 4pt; margin-top: 10pt; }
   .prev-wm { text-align: center; font-family: 'Courier New', monospace; font-size: 10pt; font-weight: 700; color: #e8e8e8 !important; letter-spacing: 3pt; margin: 4pt 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-  /* OC landscape */
+  /* OC portrait (vertical) */
   @media print {
     body.printing-oc * { visibility: hidden; }
     body.printing-oc #print-oc, body.printing-oc #print-oc * { visibility: visible; }
     body.printing-oc #print-oc { display: block !important; position: fixed; top:0; left:0; width:100%; background:#fff; }
+    #print-oc .oc-page { page-break-after: auto; }
+    #print-oc .oc-items-wrap { page-break-inside: auto; }
+    #print-oc .oc-items tbody { page-break-inside: auto; }
+    #print-oc .oc-items tr { page-break-inside: avoid; }
   }
-  @page :oc-landscape { size: A4 landscape; margin: 10mm 14mm; }
+  @page { size: A4 portrait; margin: 10mm 12mm; }
 
   /* OC A4 */
   #print-oc { display: none; }
   #print-oc.printing * { visibility: visible; }
   #print-oc.printing { display: block !important; position: fixed; top:0; left:0; width:100%; background:#fff; }
-  .oc-page { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #1a1a18; width: 100%; }  .oc-header { display: flex; align-items: stretch; border: 1.5pt solid #333; }
+  .oc-page { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #1a1a18; width: 100%; page-break-after: auto; }  .oc-header { display: flex; align-items: stretch; border: 1.5pt solid #333; }
   .oc-logo-cell { width: 120pt; border-right: 1.5pt solid #333; display: flex; align-items: center; justify-content: center; padding: 6pt; }
   .oc-logo-img { max-width: 110pt; max-height: 50pt; object-fit: contain; }
   .oc-title-cell { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 14pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1pt; border-right: 1.5pt solid #333; padding: 6pt; text-align: center; }
@@ -322,27 +326,28 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   .oc-celda-val { flex: 1; padding: 4pt 8pt; font-size: 9pt; }
   .oc-celda-lbl2 { width: 110pt; padding: 4pt 8pt; font-size: 8pt; font-weight: 700; color: #555; background: #f4f4f4 !important; border-left: 1pt solid #ddd; border-right: 1pt solid #ddd; flex-shrink:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .oc-celda-val2 { flex: 1; padding: 4pt 8pt; font-size: 9pt; }
-  .oc-items-wrap { border: 1.5pt solid #333; border-top: 1pt solid #ccc; }
-  .oc-items { width: 100%; border-collapse: collapse; font-size: 9pt; }
-  .oc-items th { padding: 5pt 6pt; font-size: 8pt; font-weight: 700; text-transform: uppercase; background: #2a2a28 !important; color: #fff !important; text-align: center; border-right: 1pt solid #444; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .oc-items-wrap { border: 1.5pt solid #333; border-top: 1pt solid #ccc; page-break-inside: auto; }
+  .oc-items { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  .oc-items th { padding: 4pt 4pt; font-size: 7pt; font-weight: 700; text-transform: uppercase; background: #2a2a28 !important; color: #fff !important; text-align: center; border-right: 1pt solid #444; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .oc-items th:last-child { border-right: none; }
-  .oc-items td { padding: 5pt 6pt; border-bottom: 1pt solid #e8e8e8; border-right: 1pt solid #e8e8e8; vertical-align: middle; }
+  .oc-items td { padding: 4pt 4pt; border-bottom: 1pt solid #e8e8e8; border-right: 1pt solid #e8e8e8; vertical-align: middle; font-size: 8pt; }
   .oc-items td:last-child { border-right: none; }
+  .oc-items tbody tr { page-break-inside: avoid; }
   .oc-items .num { text-align: right; font-family: 'Courier New', monospace; }
   .oc-items .center { text-align: center; }
   .oc-totales-wrap { border-left: 1.5pt solid #333; border-right: 1.5pt solid #333; border-bottom: 1.5pt solid #333; display: flex; justify-content: flex-end; }
-  .oc-totales { border-collapse: collapse; width: 200pt; }
-  .oc-totales td { padding: 4pt 8pt; border-top: 1pt solid #e0e0e0; font-size: 9pt; }
+  .oc-totales { border-collapse: collapse; width: 180pt; }
+  .oc-totales td { padding: 3pt 6pt; border-top: 1pt solid #e0e0e0; font-size: 8pt; }
   .oc-totales .lbl { font-weight: 700; background: #f4f4f4 !important; border-right: 1pt solid #ddd; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .oc-totales .total-row td { font-size: 11pt; font-weight: 700; background: #2a2a28 !important; color: #fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .oc-obs-sec { font-size: 8pt; font-weight: 700; text-transform: uppercase; color: #777; border-bottom: 1pt solid #ddd; padding-bottom: 3pt; margin: 10pt 0 5pt; letter-spacing:.4pt; }
-  .oc-obs-box { border: 1pt solid #ddd; border-radius: 2pt; padding: 5pt 8pt; min-height: 28pt; font-size: 9pt; }
-  .oc-firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 20pt; margin-top: 12pt; }
-  .oc-firma { display: flex; flex-direction: column; align-items: center; gap: 4pt; }
-  .oc-firma-line { width: 100%; border-bottom: 1.5pt solid #333; height: 26pt; }
-  .oc-firma-lbl { font-size: 8pt; font-weight: 700; text-transform: uppercase; text-align: center; color: #333; }
-  .oc-firma-sub { font-size: 7pt; color: #aaa; text-align: center; }
-  .oc-footer { display: flex; justify-content: space-between; font-size: 7pt; color: #aaa; border-top: 1pt solid #ddd; padding-top: 4pt; margin-top: 8pt; }
+  .oc-totales .total-row td { font-size: 10pt; font-weight: 700; background: #2a2a28 !important; color: #fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .oc-obs-sec { font-size: 7pt; font-weight: 700; text-transform: uppercase; color: #777; border-bottom: 1pt solid #ddd; padding-bottom: 2pt; margin: 8pt 0 4pt; letter-spacing:.4pt; }
+  .oc-obs-box { border: 1pt solid #ddd; border-radius: 2pt; padding: 4pt 6pt; min-height: 22pt; font-size: 8pt; line-height: 1.3; }
+  .oc-firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 16pt; margin-top: 10pt; }
+  .oc-firma { display: flex; flex-direction: column; align-items: center; gap: 3pt; }
+  .oc-firma-line { width: 100%; border-bottom: 1.5pt solid #333; height: 22pt; }
+  .oc-firma-lbl { font-size: 7pt; font-weight: 700; text-transform: uppercase; text-align: center; color: #333; }
+  .oc-firma-sub { font-size: 6pt; color: #aaa; text-align: center; }
+  .oc-footer { display: flex; justify-content: space-between; font-size: 6pt; color: #aaa; border-top: 1pt solid #ddd; padding-top: 3pt; margin-top: 6pt; }
 }
 </style>
 </head>
@@ -1398,14 +1403,14 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <table class="oc-items">
         <thead>
           <tr>
-            <th style="width:28pt">N°</th>
+            <th style="width:20pt">N°</th>
             <th>Descripción / Código interno</th>
-            <th style="width:60pt">Presentación</th>
-            <th style="width:45pt">Cantidad</th>
-            <th style="width:55pt">Vto. mín.</th>
-            <th style="width:60pt">P. unitario</th>
-            <th style="width:50pt">Moneda</th>
-            <th style="width:65pt">Total</th>
+            <th style="width:48pt">Presentación</th>
+            <th style="width:35pt">Cant.</th>
+            <th style="width:42pt">Vto.mín.</th>
+            <th style="width:48pt">P. unit.</th>
+            <th style="width:38pt">Mon.</th>
+            <th style="width:52pt">Total</th>
           </tr>
         </thead>
         <tbody id="oc-pdf-items"></tbody>
@@ -3373,6 +3378,7 @@ function printOC(idx){
   g('oc-pdf-obs').textContent=o.obs||'';
   g('oc-pdf-obs-wrap').style.display=o.obs?'':'none';
   const MIN_ROWS=10;
+  const numItems=(o.items||[]).length;
   g('oc-pdf-items').innerHTML=(o.items||[]).map((it,i)=>'<tr>'
     +'<td class="center">'+(i+1)+'</td><td>'+it.desc+'</td>'
     +'<td class="center">'+it.pres+'</td><td class="center">'+it.cant+'</td>'
@@ -3381,7 +3387,8 @@ function printOC(idx){
     +'<td class="center">'+o.moneda+'</td>'
     +'<td class="num">'+Number((it.cant||0)*(it.pu||0)).toFixed(2)+'</td>'
     +'</tr>').join('');
-  const empties=Math.max(0,MIN_ROWS-(o.items||[]).length);
+  // Solo agregar filas vacías si hay menos de MIN_ROWS (para OC cortas)
+  const empties=numItems<MIN_ROWS?Math.max(0,MIN_ROWS-numItems):0;
   g('oc-pdf-empty-rows').innerHTML=Array(empties).fill('<tr><td class="center" style="color:#ddd">·</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
   g('oc-pdf-sub').textContent=o.moneda+' '+Number(o.subtotal||0).toFixed(2);
   g('oc-pdf-iva-lbl').textContent='IVA ('+o.iva+'%)';
@@ -3389,13 +3396,13 @@ function printOC(idx){
   g('oc-pdf-total').textContent=o.moneda+' '+Number(o.total||0).toFixed(2);
   g('oc-pdf-footer').textContent=o.num+' · '+new Date().toLocaleDateString('es-UY');
   const styleEl=document.createElement('style');
-  styleEl.id='oc-landscape-style';
-  styleEl.textContent='@media print { @page { size: A4 landscape; margin: 10mm 14mm; } }';
+  styleEl.id='oc-portrait-style';
+  styleEl.textContent='@media print { @page { size: A4 portrait; margin: 10mm 12mm; } }';
   document.head.appendChild(styleEl);
   ['print-area','print-ver','print-blank','print-prev'].forEach(id=>g(id).classList.remove('printing'));
   g('print-oc').classList.add('printing');
   window.print();
-  setTimeout(()=>{g('print-oc').classList.remove('printing');const s=document.getElementById('oc-landscape-style');if(s)s.remove();},500);
+  setTimeout(()=>{g('print-oc').classList.remove('printing');const s=document.getElementById('oc-portrait-style');if(s)s.remove();},500);
 }
 
 
