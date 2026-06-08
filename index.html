@@ -1738,7 +1738,7 @@ function v(id){return g(id)?g(id).value:'';}
 function gNum(p,n){return p+'-'+new Date().getFullYear()+'-'+String(n).padStart(4,'0');}
 function tod(){return new Date().toISOString().slice(0,10);}
 function clr(ids){ids.forEach(id=>{const el=g(id);if(el)el.value='';});}
-function fillSel(id,arr,key){const s=g(id);s.innerHTML='<option value="">— seleccioná —</option>';arr.forEach(x=>{const o=document.createElement('option');o.value=x[key];o.textContent=x[key];s.appendChild(o);});}
+function fillSel(id,arr,key){const s=g(id);s.innerHTML='<option value="">— seleccioná —</option>';[...arr].sort((a,b)=>(a[key]||'').localeCompare(b[key]||'','es',{sensitivity:'base'})).forEach(x=>{const o=document.createElement('option');o.value=x[key];o.textContent=x[key];s.appendChild(o);});}
 
 function loading(show, txt='Guardando...'){
   const ol=g('loading-overlay');
