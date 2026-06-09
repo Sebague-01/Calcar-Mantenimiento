@@ -993,6 +993,26 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="form-group"><label class="form-label">Criticidad</label>
         <select class="form-input" id="eq-crit"><option>Alta</option><option>Media</option><option>Baja</option></select>
       </div>
+      
+      <div class="form-section">Plan de mantenimiento preventivo</div>
+      <div class="form-group">
+        <label class="form-label">Tipo de intervalo</label>
+        <select class="form-input" id="eq-tipo-intervalo" onchange="onEqTipoIntervaloChange()">
+          <option value="ninguno">Sin PM definido</option>
+          <option value="horometro">Horómetro (horas de uso)</option>
+          <option value="calendario">Calendario (días)</option>
+        </select>
+      </div>
+      <div class="form-group" id="eq-ciclo-horas-wrap" style="display:none">
+        <label class="form-label">Ciclo completo (horas)</label>
+        <input type="number" class="form-input mono" id="eq-ciclo-horas" placeholder="ej: 1000">
+        <span class="form-hint">Horas totales del ciclo. Ej: si las paradas son 250/500/750/1000, el ciclo es 1000.</span>
+      </div>
+      <div class="form-group" id="eq-ciclo-dias-wrap" style="display:none">
+        <label class="form-label">Ciclo completo (días)</label>
+        <input type="number" class="form-input mono" id="eq-ciclo-dias" placeholder="ej: 365">
+        <span class="form-hint">Días totales del ciclo. Ej: si las paradas son 30/90/180/365, el ciclo es 365.</span>
+      </div>
 
       <div class="form-section">Datos técnicos</div>
       <div class="form-group"><label class="form-label">Marca <span class="form-optional">(opcional)</span></label>
@@ -1906,7 +1926,7 @@ async function saveEq(){
       n++;
     }
   }
-  const row={codigo:cod,nombre:nom,sector:v('eq-sector'),area:v('eq-area'),ubicacion_tecnica:v('eq-ubic')||null,criticidad:v('eq-crit'),estado_operativo:v('eq-estado'),marca:v('eq-marca')||null,modelo:v('eq-modelo')||null,anio_instalacion:v('eq-anio')||null,numero_serie:v('eq-serie')||null};
+  const row={codigo:cod,nombre:nom,sector:v('eq-sector'),area:v('eq-area'),ubicacion_tecnica:v('eq-ubic')||null,criticidad:v('eq-crit'),estado_operativo:v('eq-estado'),marca:v('eq-marca')||null,modelo:v('eq-modelo')||null,anio_instalacion:v('eq-anio')||null,numero_serie:v('eq-serie')||null,tipo_intervalo:v('eq-tipo-intervalo')||'ninguno',ciclo_horas:parseInt(v('eq-ciclo-horas'))||null,ciclo_dias:parseInt(v('eq-ciclo-dias'))||null};
   loading(true);
   const {error}=await sb.from('equipos').insert(row);
   loading(false);
@@ -2395,6 +2415,10 @@ async function openModal(id){
     // Desbloquear código y limpiar todos los campos
     g('eq-cod').readOnly=false; g('eq-cod').style.opacity='1';
     clr(['eq-cod','eq-nom','eq-ubic','eq-marca','eq-modelo','eq-anio','eq-serie']);
+    g('eq-tipo-intervalo').value='ninguno';
+    g('eq-ciclo-horas').value='';
+    g('eq-ciclo-dias').value='';
+    onEqTipoIntervaloChange();
     g('eq-sector').value='Sector Viejo';
     g('eq-area').value='Otro';
     g('eq-crit').value='Media';
@@ -3816,11 +3840,15 @@ async function editEq(idx){
   g('eq-modelo').value=e.modelo||'';
   g('eq-anio').value=e.anio||'';
   g('eq-serie').value=e.serie||'';
+  g('eq-tipo-intervalo').value=e.tipoIntervalo||'ninguno';
+  g('eq-ciclo-horas').value=e.cicloHoras||'';
+  g('eq-ciclo-dias').value=e.cicloDias||'';
+  onEqTipoIntervaloChange();
   g('eq-cod').readOnly=true; g('eq-cod').style.opacity='0.6';
   const btn=g('m-equipo').querySelector('.btn-primary');
   btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
   btn.onclick=async()=>{
-    const row={nombre:v('eq-nom'),sector:v('eq-sector'),area:v('eq-area'),ubicacion_tecnica:v('eq-ubic')||null,criticidad:v('eq-crit'),estado_operativo:v('eq-estado'),marca:v('eq-marca')||null,modelo:v('eq-modelo')||null,anio_instalacion:v('eq-anio')||null,numero_serie:v('eq-serie')||null};
+    const row={nombre:v('eq-nom'),sector:v('eq-sector'),area:v('eq-area'),ubicacion_tecnica:v('eq-ubic')||null,criticidad:v('eq-crit'),estado_operativo:v('eq-estado'),marca:v('eq-marca')||null,modelo:v('eq-modelo')||null,anio_instalacion:v('eq-anio')||null,numero_serie:v('eq-serie')||null,tipo_intervalo:v('eq-tipo-intervalo')||'ninguno',ciclo_horas:parseInt(v('eq-ciclo-horas'))||null,ciclo_dias:parseInt(v('eq-ciclo-dias'))||null};
     loading(true);
     const {error}=await sb.from('equipos').update(row).eq('id',e.id);
     loading(false);
@@ -3840,6 +3868,12 @@ async function deleteEq(idx){
   loading(false);
   if(error){dbErr(error,'eliminar equipo');return;}
   await loadEquipos();
+}
+
+function onEqTipoIntervaloChange(){
+  const t=v('eq-tipo-intervalo');
+  g('eq-ciclo-horas-wrap').style.display=t==='horometro'?'':'none';
+  g('eq-ciclo-dias-wrap').style.display=t==='calendario'?'':'none';
 }
 
 // EDITAR OTE / OTC / EJECUCIÓN OTP
