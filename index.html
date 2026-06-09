@@ -701,6 +701,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <button class="snav-btn active" onclick="showPrevTab('plan')" id="ptab-plan"><i class="ti ti-clipboard-list"></i> Plan de tareas</button>
       <button class="snav-btn" onclick="showPrevTab('ejecucion')" id="ptab-ejecucion"><i class="ti ti-checks"></i> Ejecuciones</button>
       <button class="snav-btn" onclick="showPrevTab('calendario')" id="ptab-calendario"><i class="ti ti-calendar-month"></i> Calendario</button>
+      <button class="snav-btn" onclick="showPrevTab('horometros')" id="ptab-horometros"><i class="ti ti-gauge"></i> Horómetros</button>
       <button class="snav-btn" onclick="showPrevTab('eventos')" id="ptab-eventos"><i class="ti ti-alert-triangle"></i> Eventos</button>
     </div>
 
@@ -739,6 +740,46 @@ textarea.form-input { resize: vertical; min-height: 70px; }
             <th>Técnico</th><th>Estado</th><th style="width:52px"></th>
           </tr></thead>
           <tbody id="tb-ejec"><tr><td colspan="7"><div class="empty"><i class="ti ti-checks"></i>Sin ejecuciones registradas.</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- HORÓMETROS -->
+    <div class="stock-view" id="pv-horometros">
+ 
+      <!-- Tablero de estado PM -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <i class="ti ti-gauge" style="color:#1D9E75"></i> Estado del plan preventivo
+        </div>
+        <div id="estado-pm-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px">
+          <div style="text-align:center;padding:24px;color:#aaa;font-size:13px;grid-column:1/-1">
+            <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>Cargando estado...
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Toolbar lecturas -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Buscar equipo..." id="s-horo" oninput="filterHoro()"></div>
+          <select id="f-horo-eq" onchange="filterHoro()"><option value="">Todos los equipos con horómetro</option></select>
+        </div>
+        <button class="btn-primary" onclick="openModal('m-lectura')"><i class="ti ti-plus"></i> Registrar lectura</button>
+      </div>
+ 
+      <!-- Tabla lecturas -->
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Equipo</th>
+            <th style="text-align:right">Horas registradas</th>
+            <th>Fecha</th>
+            <th>Registrado por</th>
+            <th>Nota</th>
+          </tr></thead>
+          <tbody id="tb-horo">
+            <tr><td colspan="5"><div class="empty"><i class="ti ti-gauge"></i>Sin lecturas registradas. Registrá la primera lectura.</div></td></tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -1209,6 +1250,53 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-tarea')">Cancelar</button>
       <button class="btn-primary" onclick="saveTarea()"><i class="ti ti-device-floppy"></i> Guardar tarea</button>
+    </div>
+  </div>
+</div>
+
+<!-- LECTURA HORÓMETRO -->
+<div class="modal-overlay" id="m-lectura">
+  <div class="modal-box narrow">
+    <div class="modal-header">
+      <div class="modal-title">Registrar lectura de horómetro</div>
+      <button class="modal-close" onclick="closeModal('m-lectura')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Equipo</label>
+        <select class="form-input" id="lec-equipo" onchange="onLecEquipoChange()">
+          <option value="">— seleccioná un equipo —</option>
+        </select>
+      </div>
+      <div class="form-group full" id="lec-ultima-wrap" style="display:none">
+        <div style="background:#f0fbf6;border:1px solid #a8dfc8;border-radius:8px;padding:10px 14px;font-size:13px">
+          <span style="color:#888">Última lectura registrada: </span>
+          <span id="lec-ultima-val" style="font-weight:600;font-family:monospace"></span>
+          <span style="color:#888"> hs &nbsp;·&nbsp; </span>
+          <span id="lec-ultima-fecha" style="color:#888"></span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Horas actuales del horómetro</label>
+        <input type="number" class="form-input mono" id="lec-horas" placeholder="ej: 1250.5" step="0.1" min="0">
+        <span class="form-hint">Lectura acumulada — nunca se resetea</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha de lectura</label>
+        <input type="date" class="form-input" id="lec-fecha">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Registrado por</label>
+        <input type="text" class="form-input" id="lec-quien" placeholder="Nombre del operario o técnico">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nota <span class="form-optional">(opcional)</span></label>
+        <input type="text" class="form-input" id="lec-nota" placeholder="Observación sobre la lectura">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-sec" onclick="closeModal('m-lectura')">Cancelar</button>
+      <button class="btn-primary" onclick="saveLectura()"><i class="ti ti-device-floppy"></i> Guardar lectura</button>
     </div>
   </div>
 </div>
@@ -1779,7 +1867,7 @@ async function showApp(){
     loadEquipos(), loadProveedores(), loadDocConfig(),
     loadOTE(), loadOTC(), loadOC(),
     loadItems(), loadMovs(),
-    loadTareas(), loadEjecucs(), loadInst(), loadEventos()
+    loadTareas(), loadEjecucs(), loadInst(), loadEventos(), loadLecturas()
   ]);
   await loadPlan();
   loading(false);
@@ -1801,8 +1889,7 @@ window.addEventListener('DOMContentLoaded', async()=>{
 async function loadEquipos(){
   const {data,error}=await sb.from('equipos').select('*').order('codigo');
   if(error){dbErr(error,'cargar equipos');return;}
-  S.eq=data.map(r=>({id:r.id,cod:r.codigo,nom:r.nombre,sector:r.sector,area:r.area,ubic:r.ubicacion_tecnica,crit:r.criticidad,estado:r.estado_operativo||'Activo',marca:r.marca,modelo:r.modelo,anio:r.anio_instalacion,serie:r.numero_serie}));
-  renderEq(S.eq);
+  S.eq=data.map(r=>({id:r.id,cod:r.codigo,nom:r.nombre,sector:r.sector,area:r.area,ubic:r.ubicacion_tecnica,crit:r.criticidad,estado:r.estado_operativo||'Activo',marca:r.marca,modelo:r.modelo,anio:r.anio_instalacion,serie:r.numero_serie,tipoIntervalo:r.tipo_intervalo||'ninguno',cicloHoras:r.ciclo_horas||null,cicloDias:r.ciclo_dias||null}));
 }
 
 async function saveEq(){
@@ -2327,6 +2414,7 @@ async function openModal(id){
   }
   if(id==='m-estado-tarea'){ g('m-estado-tarea').classList.add('open'); return; }
   if(id==='m-tarea'){ openTareaModal(); return; }
+  if(id==='m-lectura'){ openLecturaModal(); return; }
   g(id).classList.add('open');
 }
 function closeModal(id){
@@ -3846,6 +3934,243 @@ async function editEjec(idx){
   g('m-ejec').classList.add('open');
 }
 
+S.lecturas = [];
+ 
+async function loadLecturas(q='', eqFiltro='') {
+  let query = sb.from('lecturas_horometro')
+    .select('*, equipos(nombre,codigo,tipo_intervalo)')
+    .order('fecha', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (eqFiltro) query = query.eq('equipo_cod', eqFiltro);
+  const { data, error } = await query;
+  if (error) { dbErr(error, 'cargar lecturas'); return; }
+  S.lecturas = data.map(r => ({
+    id: r.id,
+    equipoId: r.equipo_id,
+    equipoCod: r.equipo_cod,
+    equipoNom: r.equipos?.nombre || r.equipo_cod,
+    horas: Number(r.horas),
+    fecha: r.fecha,
+    quien: r.registrado_por,
+    nota: r.nota
+  }));
+  renderLecturas(S.lecturas, q);
+  syncHoroEquipoFilter();
+  await renderEstadoPM();
+}
+ 
+function renderLecturas(arr, q = '') {
+  const tb = g('tb-horo');
+  const filtradas = q
+    ? arr.filter(l => l.equipoNom.toLowerCase().includes(q.toLowerCase()) || l.equipoCod.toLowerCase().includes(q.toLowerCase()))
+    : arr;
+  if (!filtradas.length) {
+    tb.innerHTML = '<tr><td colspan="5"><div class="empty"><i class="ti ti-gauge"></i>Sin lecturas registradas.</div></td></tr>';
+    return;
+  }
+  tb.innerHTML = filtradas.map(l =>
+    '<tr>'
+    + '<td><span style="font-weight:600">' + l.equipoNom + '</span><div style="font-size:11px;color:#888;font-family:monospace">' + l.equipoCod + '</div></td>'
+    + '<td style="text-align:right;font-family:monospace;font-weight:600;font-size:14px">' + l.horas.toLocaleString('es-UY', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' hs</td>'
+    + '<td>' + (l.fecha || '—') + '</td>'
+    + '<td style="font-size:12px">' + (l.quien || '—') + '</td>'
+    + '<td style="font-size:12px;color:#888;max-width:200px">' + (l.nota || '—') + '</td>'
+    + '</tr>'
+  ).join('');
+}
+ 
+function filterHoro() {
+  const q = g('s-horo').value;
+  const eq = g('f-horo-eq').value;
+  renderLecturas(S.lecturas.filter(l => !eq || l.equipoCod === eq), q);
+}
+ 
+function syncHoroEquipoFilter() {
+  const equiposConLecturas = [...new Map(S.lecturas.map(l => [l.equipoCod, l])).values()];
+  const sel = g('f-horo-eq');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos los equipos con horómetro</option>';
+  equiposConLecturas.forEach(l => {
+    const o = document.createElement('option');
+    o.value = l.equipoCod;
+    o.textContent = l.equipoNom + ' (' + l.equipoCod + ')';
+    sel.appendChild(o);
+  });
+  sel.value = cur;
+}
+ 
+// Abre el modal y precarga equipos con horómetro
+function openLecturaModal() {
+  const sel = g('lec-equipo');
+  sel.innerHTML = '<option value="">— seleccioná un equipo —</option>';
+  // Equipos con tipo_intervalo = 'horometro'
+  S.eq.filter(e => e.tipoIntervalo === 'horometro').forEach(e => {
+    const o = document.createElement('option');
+    o.value = e.id;
+    o.dataset.cod = e.cod;
+    o.dataset.nom = e.nom;
+    o.textContent = e.nom + ' (' + e.cod + ')';
+    sel.appendChild(o);
+  });
+  // Si no hay equipos con horómetro configurado, mostrar todos
+  if (sel.options.length === 1) {
+    S.eq.forEach(e => {
+      const o = document.createElement('option');
+      o.value = e.id;
+      o.dataset.cod = e.cod;
+      o.dataset.nom = e.nom;
+      o.textContent = e.nom + ' (' + e.cod + ')';
+      sel.appendChild(o);
+    });
+  }
+  g('lec-fecha').value = tod();
+  g('lec-horas').value = '';
+  g('lec-quien').value = '';
+  g('lec-nota').value = '';
+  g('lec-ultima-wrap').style.display = 'none';
+  g('m-lectura').classList.add('open');
+}
+ 
+// Al seleccionar equipo, mostrar última lectura conocida
+function onLecEquipoChange() {
+  const sel = g('lec-equipo');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.dataset.cod) { g('lec-ultima-wrap').style.display = 'none'; return; }
+  const cod = opt.dataset.cod;
+  const ultimas = S.lecturas.filter(l => l.equipoCod === cod);
+  if (ultimas.length) {
+    const ult = ultimas[0]; // Ya ordenado desc por fecha
+    g('lec-ultima-val').textContent = ult.horas.toLocaleString('es-UY', { minimumFractionDigits: 1 });
+    g('lec-ultima-fecha').textContent = ult.fecha;
+    g('lec-ultima-wrap').style.display = '';
+  } else {
+    g('lec-ultima-wrap').style.display = 'none';
+  }
+}
+ 
+async function saveLectura() {
+  const sel = g('lec-equipo');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) { alert('Seleccioná un equipo.'); return; }
+  const horas = parseFloat(g('lec-horas').value);
+  if (isNaN(horas) || horas < 0) { alert('Ingresá las horas del horómetro.'); return; }
+  // Validar que no sea menor a la última lectura
+  const ultimas = S.lecturas.filter(l => l.equipoCod === opt.dataset.cod);
+  if (ultimas.length && horas < ultimas[0].horas) {
+    if (!confirm('Las horas ingresadas (' + horas + ') son menores a la última lectura (' + ultimas[0].horas + ').\n¿Querés guardar igual?')) return;
+  }
+  const row = {
+    equipo_id: opt.value,
+    equipo_cod: opt.dataset.cod,
+    horas: horas,
+    fecha: g('lec-fecha').value || tod(),
+    registrado_por: g('lec-quien').value || null,
+    nota: g('lec-nota').value || null
+  };
+  loading(true);
+  const { error } = await sb.from('lecturas_horometro').insert(row);
+  loading(false);
+  if (error) { dbErr(error, 'guardar lectura'); return; }
+  closeModal('m-lectura');
+  await loadLecturas();
+}
+ 
+// ── TABLERO DE ESTADO PM ──────────────────────────────────
+// Calcula para cada equipo con horómetro cuánto falta para el próximo mantenimiento
+async function renderEstadoPM() {
+  const grid = g('estado-pm-grid');
+  if (!grid) return;
+ 
+  // Equipos con horómetro y con tareas preventivas definidas
+  const eqsConHoro = S.eq.filter(e => e.tipoIntervalo === 'horometro');
+ 
+  if (!eqsConHoro.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:24px;color:#aaa;font-size:13px;grid-column:1/-1"><i class="ti ti-info-circle" style="font-size:24px;display:block;margin-bottom:8px"></i>No hay equipos configurados con horómetro.<br>Editá los equipos y asignales tipo de intervalo "horómetro".</div>';
+    return;
+  }
+ 
+  const cards = eqsConHoro.map(eq => {
+    // Última lectura del equipo
+    const lecturasEq = S.lecturas.filter(l => l.equipoCod === eq.cod);
+    if (!lecturasEq.length) {
+      return cardEstado(eq, null, null, null, 'sin-lectura');
+    }
+    const ultimaLectura = lecturasEq[0].horas;
+    const fechaLectura = lecturasEq[0].fecha;
+ 
+    // Tareas preventivas del equipo ordenadas por umbral
+    const tareasEq = S.tareas
+      .filter(t => t.equipo === eq.nom && t.umbral)
+      .sort((a, b) => a.umbral - b.umbral);
+ 
+    if (!tareasEq.length) {
+      return cardEstado(eq, ultimaLectura, fechaLectura, null, 'sin-tareas');
+    }
+ 
+    // Ciclo total = umbral máximo
+    const ciclo = eq.cicloHoras || Math.max(...tareasEq.map(t => t.umbral));
+    // Horas dentro del ciclo actual
+    const horasEnCiclo = ultimaLectura % ciclo;
+ 
+    // Encontrar cuál es la próxima parada
+    let proxima = tareasEq.find(t => t.umbral > horasEnCiclo);
+    if (!proxima) proxima = tareasEq[0]; // Vuelta al inicio del ciclo
+ 
+    const horasRestantes = proxima
+      ? (proxima.umbral > horasEnCiclo ? proxima.umbral - horasEnCiclo : ciclo - horasEnCiclo + proxima.umbral)
+      : null;
+ 
+    let estado = 'ok';
+    if (horasRestantes !== null) {
+      if (horasRestantes <= 0) estado = 'vencido';
+      else if (horasRestantes <= 50) estado = 'proximo';
+    }
+ 
+    return cardEstado(eq, ultimaLectura, fechaLectura, { tarea: proxima, horasRestantes, ciclo, horasEnCiclo }, estado);
+  });
+ 
+  grid.innerHTML = cards.join('');
+}
+ 
+function cardEstado(eq, ultimaLectura, fechaLectura, prox, estado) {
+  const colores = {
+    'ok':          { bg: '#f0fbf6', border: '#a8dfc8', badge: '#d4f5e9', badgeText: '#0a5c3e', label: 'OK' },
+    'proximo':     { bg: '#fef9ec', border: '#f5d87a', badge: '#fef3d0', badgeText: '#7a4f00', label: 'Próximo' },
+    'vencido':     { bg: '#fff5f5', border: '#f5c6c6', badge: '#fde8e8', badgeText: '#8b1a1a', label: 'Vencido' },
+    'sin-lectura': { bg: '#fafaf8', border: '#e5e4e0', badge: '#ebebeb', badgeText: '#555', label: 'Sin lectura' },
+    'sin-tareas':  { bg: '#fafaf8', border: '#e5e4e0', badge: '#ebebeb', badgeText: '#555', label: 'Sin tareas PM' }
+  };
+  const c = colores[estado] || colores['ok'];
+ 
+  let contenido = '';
+  if (estado === 'sin-lectura') {
+    contenido = '<div style="font-size:12px;color:#aaa;margin-top:8px">Sin lecturas — registrá la primera</div>';
+  } else if (estado === 'sin-tareas') {
+    contenido = '<div style="font-size:12px;color:#888;margin-top:4px">Última: <b>' + ultimaLectura.toLocaleString('es-UY', { minimumFractionDigits: 1 }) + ' hs</b> · ' + fechaLectura + '</div>'
+      + '<div style="font-size:12px;color:#aaa;margin-top:4px">Sin paradas PM definidas</div>';
+  } else {
+    const pct = Math.min(100, Math.max(0, Math.round((prox.horasEnCiclo / prox.ciclo) * 100)));
+    contenido =
+      '<div style="font-size:12px;color:#888;margin-top:4px">Última lectura: <b style="color:#1a1a18">' + ultimaLectura.toLocaleString('es-UY', { minimumFractionDigits: 1 }) + ' hs</b></div>'
+      + '<div style="font-size:12px;color:#888">' + fechaLectura + '</div>'
+      + '<div style="margin:8px 0 4px;height:6px;background:#e5e4e0;border-radius:3px">'
+      + '<div style="height:6px;width:' + pct + '%;background:' + (estado === 'vencido' ? '#E24B4A' : estado === 'proximo' ? '#EF9F27' : '#1D9E75') + ';border-radius:3px;transition:width .3s"></div></div>'
+      + '<div style="font-size:11px;color:#888;margin-bottom:8px">Ciclo: ' + pct + '%</div>'
+      + '<div style="font-size:12px;font-weight:600;color:#1a1a18">Próx: ' + prox.tarea.desc + '</div>'
+      + '<div style="font-size:12px;color:#888">Umbral: ' + prox.tarea.umbral + ' hs · <b style="color:' + (estado === 'vencido' ? '#A32D2D' : estado === 'proximo' ? '#BA7517' : '#0F6E56') + '">'
+      + (prox.horasRestantes <= 0 ? 'VENCIDO' : 'Faltan ' + Math.round(prox.horasRestantes) + ' hs') + '</b></div>';
+  }
+ 
+  return '<div style="background:' + c.bg + ';border:1px solid ' + c.border + ';border-radius:10px;padding:14px 16px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px">'
+    + '<div style="font-size:13px;font-weight:600">' + eq.nom + '</div>'
+    + '<span style="background:' + c.badge + ';color:' + c.badgeText + ';font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px">' + c.label + '</span>'
+    + '</div>'
+    + '<div style="font-size:11px;color:#888;font-family:monospace;margin-bottom:4px">' + eq.cod + '</div>'
+    + contenido
+    + '</div>';
+}
+ 
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 </script>
 </body>
