@@ -1211,7 +1211,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="form-grid">
       <div class="form-section">Identificación</div>
       <div class="form-group"><label class="form-label">Código de tarea</label><input type="text" class="form-input mono" id="tar-cod" placeholder="PM-001"></div>
-      <div class="form-group"><label class="form-label">Equipo</label><select class="form-input" id="tar-equipo"><option value="">— seleccioná —</option></select></div>
+      <div class="form-group"><label class="form-label">Equipo</label><select class="form-input" id="tar-equipo" onchange="onTarEquipoChange()"><option value="">— seleccioná —</option></select></div>
 
       <div class="form-group full">
         <label class="form-label">Código de instrucción <span class="form-optional">(opcional — autocompleta descripción y pasos)</span></label>
@@ -1226,6 +1226,13 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       </div>
 
       <div class="form-group full"><label class="form-label">Descripción de la tarea</label><input type="text" class="form-input" id="tar-desc" placeholder="ej: Cambio de aceite reductor"></div>
+
+      <div class="form-group full" id="tar-umbral-wrap" style="display:none">
+        <label class="form-label">Umbral de horas <span style="color:#A32D2D">*</span></label>
+        <input type="number" class="form-input mono" id="tar-umbral" placeholder="ej: 250, 500, 750, 1000" min="1">
+        <span class="form-hint">Horas acumuladas del ciclo en que se ejecuta esta parada. Ej: para el mantenimiento de 500 hs, ingresá 500.</span>
+      </div>
+
       <div class="form-group"><label class="form-label">Frecuencia</label>
         <select class="form-input" id="tar-freq" onchange="onFreqChange()">
           <option value="Diaria">Diaria (1 día)</option>
@@ -2246,7 +2253,7 @@ async function loadTareas(q='',eq=''){
   if(q) query=query.or('codigo.ilike.%'+q+'%,descripcion.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar tareas');return;}
-  S.tareas=data.map(r=>({id:r.id,cod:r.codigo,equipo:r.equipo,desc:r.descripcion,freq:r.frecuencia,diasCiclo:r.dias_ciclo,fechaIni:r.fecha_inicio,hs:r.intervalo_hs,tiempo:r.tiempo_est,tec:r.tecnico,checks:r.checks||[],insumos:r.insumos||[]}));
+  S.tareas=data.map(r=>({id:r.id,cod:r.codigo,equipo:r.equipo,desc:r.descripcion,freq:r.frecuencia,diasCiclo:r.dias_ciclo,fechaIni:r.fecha_inicio,hs:r.intervalo_hs,tiempo:r.tiempo_est,tec:r.tecnico,checks:r.checks||[],insumos:r.insumos||[],umbral:r.umbral||null,pasos:r.pasos||[],insumosPm:r.insumos_pm||[]}));
   renderPlan(S.tareas);
   syncPrevEquipoFilter();
 }
@@ -2258,7 +2265,8 @@ async function saveTarea(){
   const diasCiclo=freq==='Personalizada'?parseInt(v('tar-dias'))||7:FREQ_DIAS[freq]||7;
   if(freq==='Personalizada'&&!v('tar-dias')){alert('Ingresá el número de días para la frecuencia personalizada.');return;}
   const fechaIni=v('tar-fecha-ini')||null;
-  const row={codigo:cod,equipo:v('tar-equipo')||null,descripcion:desc,frecuencia:freq,dias_ciclo:diasCiclo,fecha_inicio:fechaIni,intervalo_hs:v('tar-hs')||null,tiempo_est:v('tar-tiempo')||null,tecnico:v('tar-tec')||null,checks:getChecks(),insumos:getInsumos()};
+  const umbral=parseInt(v('tar-umbral'))||null;
+  const row={codigo:cod,equipo:v('tar-equipo')||null,descripcion:desc,frecuencia:freq,dias_ciclo:diasCiclo,fecha_inicio:fechaIni,intervalo_hs:v('tar-hs')||null,tiempo_est:v('tar-tiempo')||null,tecnico:v('tar-tec')||null,checks:getChecks(),insumos:getInsumos(),umbral:umbral};
   loading(true);
   const {error}=await sb.from('otp_tareas').insert(row);
   loading(false);
@@ -2977,6 +2985,27 @@ const FREQ_DIAS = {
 function onFreqChange(){
   const freq = v('tar-freq');
   g('tar-dias-wrap').style.display = freq==='Personalizada' ? '' : 'none';
+}
+
+function onTarEquipoChange(){
+  const nom=v('tar-equipo');
+  const eq=S.eq.find(e=>e.nom===nom);
+  const esHoro=eq&&eq.tipoIntervalo==='horometro';
+  g('tar-umbral-wrap').style.display=esHoro?'':'none';
+  // Si es horómetro, frecuencia no aplica — ocultar
+  g('tar-freq').closest('.form-group').style.display=esHoro?'none':'';
+  const diasWrap=g('tar-dias-wrap');
+  if(diasWrap) diasWrap.style.display='none';
+  const fechaWrap=g('tar-fecha-ini')&&g('tar-fecha-ini').closest('.form-group');
+  if(fechaWrap) fechaWrap.style.display=esHoro?'none':'';
+}
+
+function openTareaModalConEquipo(nomEq){
+  openTareaModal();
+  setTimeout(()=>{
+    g('tar-equipo').value=nomEq;
+    onTarEquipoChange();
+  },50);
 }
 
 function getDiasCiclo(tarea){
