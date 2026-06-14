@@ -348,12 +348,24 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   .oc-firma-lbl { font-size: 7pt; font-weight: 700; text-transform: uppercase; text-align: center; color: #333; }
   .oc-firma-sub { font-size: 6pt; color: #aaa; text-align: center; }
   .oc-footer { display: flex; justify-content: space-between; font-size: 6pt; color: #aaa; border-top: 1pt solid #ddd; padding-top: 3pt; margin-top: 6pt; }
+  @media print {
+  body > * { display: none !important; }
+  #rep-print-overlay { display: block !important; position: static !important; }
+}
 }
 </style>
 </head>
 <body>
 
 <!-- LOADING OVERLAY -->
+ <!-- REPORTE INTERVENCIONES PRINT -->
+<div id="rep-print-overlay" style="display:none;position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto" id="rep-print-overlay">
+  <div id="rep-print-content" style="max-width:210mm;margin:0 auto;padding:12mm 15mm;font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1a1a18"></div>
+  <div style="position:fixed;top:12px;right:12px;display:flex;gap:8px" id="rep-print-controls">
+    <button onclick="window.print()" class="btn-primary"><i class="ti ti-printer"></i> Imprimir</button>
+    <button onclick="cerrarReportePrint()" class="btn-sec"><i class="ti ti-x"></i> Cerrar</button>
+  </div>
+</div>
 <div id="loading-overlay">
   <div class="loading-spinner"></div>
   <div class="loading-text" id="loading-text">Cargando...</div>
@@ -405,6 +417,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <button class="nav-btn" onclick="showTab('equipos')" id="tab-equipos"><i class="ti ti-engine"></i> Equipos</button>
     <button class="nav-btn" onclick="showTab('proveedores')" id="tab-proveedores"><i class="ti ti-building-factory"></i> Proveedores</button>
     <button class="nav-btn" onclick="showTab('stock')" id="tab-stock"><i class="ti ti-package"></i> Stock</button>
+    <button class="nav-btn" onclick="showTab('reportes')" id="tab-reportes"><i class="ti ti-chart-bar"></i> Reportes</button>
     <button class="nav-btn config" onclick="showTab('config')" id="tab-config"><i class="ti ti-settings"></i> Configuración</button>
   </div>
 
@@ -497,6 +510,66 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       </table>
     </div>
   </div>
+
+  <!-- REPORTES -->
+<div class="view" id="view-reportes">
+  <div style="max-width:900px">
+    <div style="font-size:16px;font-weight:600;margin-bottom:4px">Reportes</div>
+    <div style="font-size:13px;color:#888;margin-bottom:20px">Generación de reportes operativos del departamento de mantenimiento.</div>
+
+    <!-- Sub-nav reportes -->
+    <div class="stock-subnav" style="margin-bottom:20px">
+      <button class="snav-btn active" onclick="showReporteTab('intervenciones')" id="rtab-intervenciones"><i class="ti ti-clipboard-list"></i> Intervenciones por equipo</button>
+    </div>
+
+    <!-- REPORTE: INTERVENCIONES POR EQUIPO -->
+    <div id="rv-intervenciones">
+      <div style="background:#fff;border:1px solid #e5e4e0;border-radius:10px;padding:20px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:14px;color:#444">Parámetros del reporte</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
+          <div>
+            <label style="font-size:12px;color:#666;font-weight:500;display:block;margin-bottom:4px">Equipo</label>
+            <select class="form-input" id="rep-equipo" style="width:100%">
+              <option value="">— todos los equipos —</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:#666;font-weight:500;display:block;margin-bottom:4px">Fecha desde</label>
+            <input type="date" class="form-input" id="rep-desde" style="width:100%">
+          </div>
+          <div>
+            <label style="font-size:12px;color:#666;font-weight:500;display:block;margin-bottom:4px">Fecha hasta</label>
+            <input type="date" class="form-input" id="rep-hasta" style="width:100%">
+          </div>
+          <div>
+            <button class="btn-primary" onclick="generarReporteIntervenciones()" style="white-space:nowrap">
+              <i class="ti ti-search"></i> Generar
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <label style="font-size:12px;color:#666;font-weight:500;align-self:center">Incluir:</label>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="rep-inc-ote" checked> OTE (Externas)</label>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="rep-inc-otc" checked> OTC (Correctivas)</label>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="rep-inc-otp" checked> OTP (Preventivas)</label>
+        </div>
+      </div>
+
+      <!-- Resumen previo al PDF -->
+      <div id="rep-preview" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div id="rep-resumen-txt" style="font-size:13px;color:#555"></div>
+          <button class="btn-primary" onclick="imprimirReporte()"><i class="ti ti-printer"></i> Imprimir / PDF</button>
+        </div>
+        <div id="rep-tabla-preview"></div>
+      </div>
+      <div id="rep-empty" style="display:none;padding:40px;text-align:center;color:#aaa;background:#fff;border:1px solid #e5e4e0;border-radius:10px">
+        <i class="ti ti-clipboard-off" style="font-size:32px;display:block;margin-bottom:8px"></i>
+        No se encontraron intervenciones para los filtros seleccionados.
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- CONFIGURACIÓN -->
   <div class="view" id="view-config">
@@ -1136,6 +1209,13 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           <option>Descontinuado</option>
         </select>
       </div>
+      <!-- PREVIEW TOTALES -->
+      <div class="form-group full" id="oc-preview-totales" style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;font-size:13px;display:none">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#888">Subtotal (sin IVA)</span><span class="mono" id="oc-prev-sub">—</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#888" id="oc-prev-iva-lbl">IVA (22%)</span><span class="mono" id="oc-prev-iva">—</span></div>
+        <div id="oc-prev-rdnd-row" style="display:none;justify-content:space-between;margin-bottom:4px"><span style="color:#888">Redondeo</span><span class="mono" id="oc-prev-rdnd">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid #ddd;padding-top:6px;margin-top:2px"><span>TOTAL</span><span class="mono" id="oc-prev-total">—</span></div>
+      </div>
       <!-- Fila 10: Observaciones -->
       <div class="form-group full"><label class="form-label">Observaciones <span class="form-optional">(opcional)</span></label><textarea class="form-input" id="item-obs" rows="2" placeholder="Equivalencias, proveedores alternativos, notas especiales..."></textarea></div>
     </div>
@@ -1435,7 +1515,14 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="form-group"><label class="form-label">Moneda</label>
         <select class="form-input" id="oc-moneda"><option>UYU</option><option>USD</option><option>EUR</option></select>
       </div>
-      <div class="form-group"><label class="form-label">IVA (%)</label><input type="number" class="form-input" id="oc-iva" value="22" placeholder="22"></div>
+      <div class="form-group"><label class="form-label">IVA (%)</label><input type="number" class="form-input" id="oc-iva" value="22" placeholder="22" oninput="recalcOC()"></div>
+      <div class="form-group"><label class="form-label">Modo IVA</label>
+        <select class="form-input" id="oc-iva-modo" onchange="recalcOC()">
+          <option value="excluido">IVA excluido (se agrega al subtotal)</option>
+          <option value="incluido">IVA incluido en el precio unitario</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Redondeo <span class="form-optional">(opcional)</span></label><input type="number" class="form-input" id="oc-redondeo" value="0" step="0.01" placeholder="0.00" oninput="recalcOC()"></div>
       <div class="form-group"><label class="form-label">Estado</label>
         <select class="form-input" id="oc-estado"><option>Borrador</option><option>Emitida</option><option>Recibida</option><option>Cancelada</option></select>
       </div>
@@ -1539,6 +1626,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <table class="oc-totales">
         <tr><td class="lbl">Subtotal</td><td class="num" id="oc-pdf-sub" style="text-align:right;font-family:'Courier New',monospace"></td></tr>
         <tr><td class="lbl" id="oc-pdf-iva-lbl">IVA (22%)</td><td class="num" id="oc-pdf-iva-val" style="text-align:right;font-family:'Courier New',monospace"></td></tr>
+        <tr id="oc-pdf-rdnd-row" style="display:none"><td class="lbl">Redondeo</td><td class="num" id="oc-pdf-rdnd-val" style="text-align:right;font-family:'Courier New',monospace"></td></tr>
         <tr class="total-row"><td class="lbl">TOTAL</td><td class="num" id="oc-pdf-total" style="text-align:right;font-family:'Courier New',monospace"></td></tr>
       </table>
     </div>
@@ -2319,17 +2407,18 @@ async function loadOC(q='',est=''){
   if(q) query=query.or('numero.ilike.%'+q+'%,proveedor.ilike.%'+q+'%,ot_vinculada.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar OC');return;}
-  S.oc=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,ot:r.ot_vinculada,prov:r.proveedor,rut:r.rut_prov,pago:r.cond_pago,entrega:r.fecha_entrega,lugar:r.lugar_entrega,moneda:r.moneda,iva:r.iva_pct,estado:r.estado,items:r.items||[],subtotal:r.subtotal,ivaVal:r.iva_val,total:r.total,obs:r.observaciones}));
+  // DESPUÉS
+  S.oc=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,ot:r.ot_vinculada,prov:r.proveedor,rut:r.rut_prov,pago:r.cond_pago,entrega:r.fecha_entrega,lugar:r.lugar_entrega,moneda:r.moneda,iva:r.iva_pct,iva_incluido:r.iva_incluido||false,redondeo:r.redondeo||0,estado:r.estado,items:r.items||[],subtotal:r.subtotal,ivaVal:r.iva_val,total:r.total,obs:r.observaciones}));
   renderOC(S.oc);
 }
 
 async function saveOC(){
-  const items=getOCItems();
-  const iva=parseFloat(v('oc-iva'))||0;
-  const subtotal=items.reduce((s,i)=>s+(i.cant*i.pu),0);
-  const ivaVal=subtotal*iva/100;
-  const total=subtotal+ivaVal;
-  const row={numero:v('oc-num'),fecha:v('oc-fecha'),ot_vinculada:v('oc-ot')||null,proveedor:v('oc-prov')||null,rut_prov:v('oc-rut')||null,cond_pago:v('oc-pago')||null,fecha_entrega:v('oc-entrega')||null,lugar_entrega:v('oc-lugar')||null,moneda:v('oc-moneda'),iva_pct:iva,estado:v('oc-estado'),items,subtotal,iva_val:ivaVal,total,observaciones:v('oc-obs')||null};
+  const items   = getOCItems();
+  const iva     = parseFloat(v('oc-iva'))||0;
+  const modo    = g('oc-iva-modo') ? g('oc-iva-modo').value : 'excluido';
+  const redondeo= parseFloat(v('oc-redondeo'))||0;
+  const {subtotal,ivaVal,total} = calcOCTotales(items, iva, modo, redondeo);
+  const row={numero:v('oc-num'),fecha:v('oc-fecha'),ot_vinculada:v('oc-ot')||null,proveedor:v('oc-prov')||null,rut_prov:v('oc-rut')||null,cond_pago:v('oc-pago')||null,fecha_entrega:v('oc-entrega')||null,lugar_entrega:v('oc-lugar')||null,moneda:v('oc-moneda'),iva_pct:iva,iva_incluido:modo==='incluido',redondeo,estado:v('oc-estado'),items,subtotal,iva_val:ivaVal,total,observaciones:v('oc-obs')||null};
   loading(true);
   const {error}=await sb.from('ordenes_compra').insert(row);
   loading(false);
@@ -2354,6 +2443,7 @@ function showTab(t){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   g('view-'+t).classList.add('active'); g('tab-'+t).classList.add('active');
   if(t==='dashboard') updateDash();
+  if(t==='reportes') initReportes();
 }
 
 // Codificación automática al abrir modal
@@ -3432,7 +3522,49 @@ function addOCItem(desc='',pres='',cant='',vto='',pu=''){
 }
 
 function recalcOC(){
-  // no hace falta preview en el modal, se calcula al guardar
+  const items = getOCItems();
+  if(!items.length){ g('oc-preview-totales').style.display='none'; return; }
+  const iva     = parseFloat(v('oc-iva'))||0;
+  const modo    = g('oc-iva-modo') ? g('oc-iva-modo').value : 'excluido';
+  const redondeo= parseFloat(v('oc-redondeo'))||0;
+  const moneda  = v('oc-moneda')||'';
+  let subtotal, ivaVal, total;
+  if(modo==='incluido'){
+    const sumaConIva = items.reduce((s,i)=>s+(i.cant*i.pu),0);
+    subtotal = sumaConIva / (1 + iva/100);
+    ivaVal   = sumaConIva - subtotal;
+    total    = sumaConIva + redondeo;
+  } else {
+    subtotal = items.reduce((s,i)=>s+(i.cant*i.pu),0);
+    ivaVal   = subtotal * iva / 100;
+    total    = subtotal + ivaVal + redondeo;
+  }
+  g('oc-prev-sub').textContent  = moneda+' '+subtotal.toFixed(2);
+  g('oc-prev-iva-lbl').textContent = 'IVA ('+iva+'%)';
+  g('oc-prev-iva').textContent  = moneda+' '+ivaVal.toFixed(2);
+  if(redondeo!==0){
+    g('oc-prev-rdnd-row').style.display='flex';
+    g('oc-prev-rdnd').textContent = moneda+' '+(redondeo>=0?'+':'')+redondeo.toFixed(2);
+  } else {
+    g('oc-prev-rdnd-row').style.display='none';
+  }
+  g('oc-prev-total').textContent = moneda+' '+total.toFixed(2);
+  g('oc-preview-totales').style.display='';
+}
+
+function calcOCTotales(items, iva, modo, redondeo){
+  let subtotal, ivaVal, total;
+  if(modo==='incluido'){
+    const sumaConIva = items.reduce((s,i)=>s+(i.cant*i.pu),0);
+    subtotal = sumaConIva / (1 + iva/100);
+    ivaVal   = sumaConIva - subtotal;
+    total    = sumaConIva + redondeo;
+  } else {
+    subtotal = items.reduce((s,i)=>s+(i.cant*i.pu),0);
+    ivaVal   = subtotal * iva / 100;
+    total    = subtotal + ivaVal + redondeo;
+  }
+  return { subtotal, ivaVal, total };
 }
 
 function getOCItems(){
@@ -3474,6 +3606,9 @@ async function openOCModal(){
   clr(['oc-ot','oc-pago','oc-entrega','oc-lugar','oc-obs']);
   g('oc-moneda').value='UYU';
   g('oc-iva').value='22';
+  if(g('oc-iva-modo'))  g('oc-iva-modo').value  = 'excluido';
+  if(g('oc-redondeo'))  g('oc-redondeo').value   = 0;
+  g('oc-preview-totales').style.display = 'none';
   g('oc-estado').value='Borrador';
   g('oc-items-container').innerHTML='';
   ocItemCount=0;
@@ -3507,6 +3642,7 @@ function renderOC(arr){
 // Imprimir OC A4 horizontal
 function printOC(idx){
   const o=S.oc[idx];
+  console.log('OC data:', JSON.stringify(o));
   g('oc-pdf-num').textContent=o.num;
   g('oc-pdf-fecha').textContent='Fecha: '+o.fecha;
   g('oc-pdf-ot').textContent=o.ot?'OT vinculada: '+o.ot:'';
@@ -3532,8 +3668,19 @@ function printOC(idx){
   const empties=numItems<MIN_ROWS?Math.max(0,MIN_ROWS-numItems):0;
   g('oc-pdf-empty-rows').innerHTML=Array(empties).fill('<tr><td class="center" style="color:#ddd">·</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
   g('oc-pdf-sub').textContent=o.moneda+' '+Number(o.subtotal||0).toFixed(2);
-  g('oc-pdf-iva-lbl').textContent='IVA ('+o.iva+'%)';
+  g('oc-pdf-iva-lbl').textContent='IVA ('+o.iva+'%)'+(o.iva_incluido?' — incluido':'');
   g('oc-pdf-iva-val').textContent=o.moneda+' '+Number(o.ivaVal||0).toFixed(2);
+  // Redondeo
+  const rdndRow = document.getElementById('oc-pdf-rdnd-row');
+  if(rdndRow){
+    if(o.redondeo && o.redondeo!==0){
+      rdndRow.style.display='';
+      // DESPUÉS
+      document.getElementById('oc-pdf-rdnd-val').textContent=o.moneda+' '+(o.redondeo>=0?'+':'')+Number(o.redondeo).toFixed(2);
+    } else {
+      rdndRow.style.display='none';
+    }
+  }
   g('oc-pdf-total').textContent=o.moneda+' '+Number(o.total||0).toFixed(2);
   g('oc-pdf-footer').textContent=o.num+' · '+new Date().toLocaleDateString('es-UY');
   const styleEl=document.createElement('style');
@@ -3799,6 +3946,8 @@ async function editOC(idx){
   g('oc-lugar').value = o.lugar||'';
   g('oc-moneda').value = o.moneda||'UYU';
   g('oc-iva').value   = o.iva||22;
+  if(g('oc-iva-modo')) g('oc-iva-modo').value = o.iva_incluido ? 'incluido' : 'excluido';
+  if(g('oc-redondeo')) g('oc-redondeo').value  = o.redondeo || 0;
   g('oc-estado').value = o.estado||'Borrador';
   g('oc-obs').value   = o.obs||'';
 
@@ -3820,11 +3969,11 @@ async function editOC(idx){
 async function saveOCEdit(){
   if(editOCIdx === null) return;
   const o = S.oc[editOCIdx];
-  const items = getOCItems();
-  const iva   = parseFloat(v('oc-iva'))||0;
-  const subtotal = items.reduce((s,i)=>s+(i.cant*i.pu),0);
-  const ivaVal   = subtotal*iva/100;
-  const total    = subtotal+ivaVal;
+  const items   = getOCItems();
+  const iva     = parseFloat(v('oc-iva'))||0;
+  const modo    = g('oc-iva-modo') ? g('oc-iva-modo').value : 'excluido';
+  const redondeo= parseFloat(v('oc-redondeo'))||0;
+  const {subtotal,ivaVal,total} = calcOCTotales(items, iva, modo, redondeo);
   const row = {
     ot_vinculada : v('oc-ot')||null,
     proveedor    : v('oc-prov')||null,
@@ -3834,6 +3983,8 @@ async function saveOCEdit(){
     lugar_entrega: v('oc-lugar')||null,
     moneda       : v('oc-moneda'),
     iva_pct      : iva,
+    iva_incluido : modo==='incluido',
+    redondeo,
     estado       : v('oc-estado'),
     items, subtotal, iva_val:ivaVal, total,
     observaciones: v('oc-obs')||null
@@ -4235,6 +4386,308 @@ function cardEstado(eq, ultimaLectura, fechaLectura, prox, estado) {
 }
  
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+// ══════════════════════════════════════
+// REPORTES
+// ══════════════════════════════════════
+
+function showReporteTab(t) {
+  document.querySelectorAll('#view-reportes .snav-btn').forEach(b => b.classList.remove('active'));
+  const btn = g('rtab-' + t);
+  if (btn) btn.classList.add('active');
+  // por ahora solo hay uno, pero queda listo para más
+}
+
+function initReportes() {
+  // Poblar select de equipos cuando se abre la pestaña
+  const sel = g('rep-equipo');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— todos los equipos —</option>';
+  S.eq.forEach(e => {
+    const o = document.createElement('option');
+    o.value = e.nom;
+    o.textContent = e.cod + ' — ' + e.nom;
+    sel.appendChild(o);
+  });
+  // Fechas por defecto: año en curso
+  const hoy = new Date();
+  const iniAnio = hoy.getFullYear() + '-01-01';
+  const hoyStr = hoy.toISOString().slice(0, 10);
+  if (!g('rep-desde').value) g('rep-desde').value = iniAnio;
+  if (!g('rep-hasta').value) g('rep-hasta').value = hoyStr;
+}
+
+// Sobrescribir showTab para init al abrir reportes
+const _showTabOrig = showTab;
+// patch aplicado abajo en override
+
+async function generarReporteIntervenciones() {
+  const equipo = v('rep-equipo');
+  const desde = v('rep-desde');
+  const hasta = v('rep-hasta');
+  const incOTE = g('rep-inc-ote').checked;
+  const incOTC = g('rep-inc-otc').checked;
+  const incOTP = g('rep-inc-otp').checked;
+
+  if (!desde || !hasta) { alert('Seleccioná el período.'); return; }
+  if (!incOTE && !incOTC && !incOTP) { alert('Seleccioná al menos un tipo de OT.'); return; }
+
+  loading(true, 'Consultando intervenciones...');
+
+  let otes = [], otcs = [], otps = [];
+
+  try {
+    if (incOTE) {
+      let q = sb.from('ote').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha');
+      if (equipo) q = q.eq('equipo', equipo);
+      const { data } = await q;
+      otes = (data || []).map(r => ({
+        tipo: 'OTE', num: r.numero, fecha: r.fecha,
+        equipo: r.equipo || '—', desc: r.descripcion || '',
+        estado: r.estado, extra: {
+          proveedor: r.proveedor, tipo_trabajo: r.tipo,
+          conforme: r.conforme, costo: r.costo_real,
+          factura: r.factura, fecha_cierre: r.fecha_cierre
+        }
+      }));
+    }
+
+    if (incOTC) {
+      let q = sb.from('otc').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha');
+      if (equipo) q = q.eq('equipo', equipo);
+      const { data } = await q;
+      otcs = (data || []).map(r => ({
+        tipo: 'OTC', num: r.numero, fecha: r.fecha,
+        equipo: r.equipo || '—', desc: r.descripcion || '',
+        estado: r.estado, extra: {
+          tecnico: r.tecnico, tipo_trabajo: r.tipo,
+          prioridad: r.prioridad, horas: r.horas_est,
+          hora_ini: r.hora_ini, hora_fin: r.hora_fin,
+          obs: r.observaciones
+        }
+      }));
+    }
+
+    if (incOTP) {
+      let q = sb.from('otp_ejecuciones').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha');
+      if (equipo) q = q.eq('equipo', equipo);
+      const { data } = await q;
+      otps = (data || []).map(r => ({
+        tipo: 'OTP', num: r.numero, fecha: r.fecha,
+        equipo: r.equipo || '—', desc: r.descripcion || '',
+        estado: r.estado, extra: {
+          tecnico: r.tecnico, tarea_cod: r.tarea_cod,
+          horas_eq: r.horas_equipo, obs: r.observaciones
+        }
+      }));
+    }
+  } catch (e) {
+    loading(false);
+    dbErr(e, 'consultar intervenciones');
+    return;
+  }
+
+  loading(false);
+
+  // Combinar y ordenar por fecha
+  const todas = [...otes, ...otcs, ...otps].sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+
+  const preview = g('rep-preview');
+  const empty = g('rep-empty');
+  const tabla = g('rep-tabla-preview');
+
+  if (!todas.length) {
+    preview.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  preview.style.display = 'block';
+
+  // Guardar para el print
+  window._repData = { todas, equipo, desde, hasta, incOTE, incOTC, incOTP };
+
+  // Resumen
+  const cntOTE = otes.length, cntOTC = otcs.length, cntOTP = otps.length;
+  const partes = [];
+  if (incOTE) partes.push(cntOTE + ' OTE');
+  if (incOTC) partes.push(cntOTC + ' OTC');
+  if (incOTP) partes.push(cntOTP + ' OTP');
+  const equipoLabel = equipo || 'todos los equipos';
+  g('rep-resumen-txt').textContent =
+    partes.join(' · ') + ' — ' + equipoLabel + ' · ' + desde + ' → ' + hasta;
+
+  // Tabla preview
+  const colorTipo = { OTE: '#BA7517', OTC: '#185FA5', OTP: '#1D9E75' };
+  tabla.innerHTML = `
+    <div style="background:#fff;border:1px solid #e5e4e0;border-radius:8px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:#f5f5f0">
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e5e4e0;font-size:11px;color:#888;font-weight:600">Fecha</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e5e4e0;font-size:11px;color:#888;font-weight:600">Tipo</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e5e4e0;font-size:11px;color:#888;font-weight:600">Número</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e5e4e0;font-size:11px;color:#888;font-weight:600">Equipo</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e5e4e0;font-size:11px;color:#888;font-weight:600">Descripción</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e5e4e0;font-size:11px;color:#888;font-weight:600">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${todas.map(r => `
+            <tr style="border-bottom:1px solid #f0efe9">
+              <td style="padding:7px 10px;color:#888;white-space:nowrap">${r.fecha || '—'}</td>
+              <td style="padding:7px 10px"><span style="font-size:10px;font-weight:700;color:${colorTipo[r.tipo]||'#555'};background:${colorTipo[r.tipo]||'#555'}18;padding:2px 6px;border-radius:3px">${r.tipo}</span></td>
+              <td style="padding:7px 10px;font-family:monospace;font-size:11px">${r.num || '—'}</td>
+              <td style="padding:7px 10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.equipo}">${r.equipo}</td>
+              <td style="padding:7px 10px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.desc}">${r.desc || '—'}</td>
+              <td style="padding:7px 10px"><span style="font-size:10px;padding:2px 6px;border-radius:3px;background:#f0efe9;color:#555">${r.estado || '—'}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function imprimirReporte() {
+  const d = window._repData;
+  if (!d) return;
+
+  const { todas, equipo, desde, hasta } = d;
+  const equipoLabel = equipo || 'Todos los equipos';
+  const hoy = new Date().toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const periodoStr = desde + ' al ' + hasta;
+  const colorTipo = { OTE: '#BA7517', OTC: '#185FA5', OTP: '#1D9E75' };
+
+  const grupos = {};
+  todas.forEach(r => {
+    const k = r.equipo;
+    if (!grupos[k]) grupos[k] = [];
+    grupos[k].push(r);
+  });
+
+  function buildDetalle(r) {
+    const e = r.extra || {};
+    if (r.tipo === 'OTE') {
+      const lineas = [
+        e.tipo_trabajo ? `<b>Tipo de trabajo:</b> ${e.tipo_trabajo}` : '',
+        e.proveedor ? `<b>Proveedor:</b> ${e.proveedor}` : '',
+        e.factura ? `<b>Factura:</b> ${e.factura}` : '',
+        e.costo ? `<b>Costo real:</b> $${e.costo}` : '',
+        e.conforme && e.conforme !== 'N/A' ? `<b>Conforme:</b> ${e.conforme}` : '',
+        e.fecha_cierre ? `<b>Fecha cierre:</b> ${e.fecha_cierre}` : '',
+      ].filter(Boolean);
+      return lineas.length ? `<div style="margin-top:4pt;color:#555;font-size:8.5pt">${lineas.join(' &nbsp;·&nbsp; ')}</div>` : '';
+    }
+    if (r.tipo === 'OTC') {
+      const lineas = [
+        e.tipo_trabajo ? `<b>Tipo:</b> ${e.tipo_trabajo}` : '',
+        e.tecnico ? `<b>Técnico:</b> ${e.tecnico}` : '',
+        e.prioridad ? `<b>Prioridad:</b> ${e.prioridad}` : '',
+        e.horas ? `<b>Horas est.:</b> ${e.horas}` : '',
+        (e.hora_ini && e.hora_fin) ? `<b>Horario:</b> ${e.hora_ini} – ${e.hora_fin}` : '',
+      ].filter(Boolean);
+      const obs = e.obs ? `<div style="margin-top:3pt;color:#777;font-style:italic;font-size:8.5pt"><b>Obs.:</b> ${e.obs}</div>` : '';
+      return (lineas.length ? `<div style="margin-top:4pt;color:#555;font-size:8.5pt">${lineas.join(' &nbsp;·&nbsp; ')}</div>` : '') + obs;
+    }
+    if (r.tipo === 'OTP') {
+      const lineas = [
+        e.tarea_cod ? `<b>Tarea:</b> ${e.tarea_cod}` : '',
+        e.tecnico ? `<b>Técnico:</b> ${e.tecnico}` : '',
+        e.horas_eq ? `<b>Horas equipo:</b> ${e.horas_eq}` : '',
+      ].filter(Boolean);
+      const obs = e.obs ? `<div style="margin-top:3pt;color:#777;font-style:italic;font-size:8.5pt"><b>Obs.:</b> ${e.obs}</div>` : '';
+      return (lineas.length ? `<div style="margin-top:4pt;color:#555;font-size:8.5pt">${lineas.join(' &nbsp;·&nbsp; ')}</div>` : '') + obs;
+    }
+    return '';
+  }
+
+  const cOTE = todas.filter(r => r.tipo === 'OTE').length;
+  const cOTC = todas.filter(r => r.tipo === 'OTC').length;
+  const cOTP = todas.filter(r => r.tipo === 'OTP').length;
+  const equiposKeys = Object.keys(grupos).sort();
+
+  let filas = '';
+  equiposKeys.forEach(eqNom => {
+    const rows = grupos[eqNom];
+    if (!equipo) {
+      filas += `<div style="background:#f5f5f0;border-left:3pt solid #1D9E75;padding:5pt 8pt;margin:14pt 0 6pt;font-weight:700;font-size:10.5pt">▸ ${eqNom} <span style="font-size:8.5pt;font-weight:400;color:#888">(${rows.length} intervención${rows.length !== 1 ? 'es' : ''})</span></div>`;
+    }
+    rows.forEach(r => {
+      const badgeColor = colorTipo[r.tipo] || '#555';
+      filas += `
+        <div style="border-bottom:0.5pt solid #e5e4e0;padding:6pt 4pt">
+          <div style="display:flex;gap:8pt;align-items:flex-start">
+            <span style="font-size:8.5pt;color:#888;min-width:52pt;white-space:nowrap">${r.fecha || '—'}</span>
+            <span style="font-size:7.5pt;font-weight:700;padding:1pt 5pt;border-radius:2pt;color:${badgeColor};background:${badgeColor}18;min-width:24pt;text-align:center">${r.tipo}</span>
+            <span style="font-family:monospace;font-size:8.5pt;color:#888;min-width:90pt">${r.num || '—'}</span>
+            <span style="font-size:9.5pt;flex:1">${r.desc || '—'}</span>
+            <span style="font-size:8pt;padding:1pt 5pt;border-radius:2pt;background:#f0efe9;color:#555;white-space:nowrap">${r.estado || '—'}</span>
+          </div>
+          ${buildDetalle(r)}
+        </div>`;
+    });
+  });
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Reporte Intervenciones — ${equipoLabel}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; color: #1a1a18; padding: 12mm 15mm; }
+    @page { size: A4; margin: 12mm 15mm; }
+    @media print { .no-print { display: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="position:fixed;top:10px;right:10px;display:flex;gap:8px">
+    <button onclick="window.print()" style="padding:8px 16px;background:#1D9E75;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">Imprimir / PDF</button>
+    <button onclick="window.close()" style="padding:8px 16px;background:#f0efe9;border:none;border-radius:6px;cursor:pointer;font-size:13px">Cerrar</button>
+  </div>
+
+  <div style="border-bottom:2pt solid #1D9E75;padding-bottom:8pt;margin-bottom:12pt">
+    <div style="font-size:8pt;color:#888">CALCAR · NOFROCK SAS — Sistema de Gestión de Mantenimiento</div>
+    <div style="font-size:14pt;font-weight:700;margin:3pt 0 2pt">Reporte de Intervenciones por Equipo</div>
+    <div style="font-size:8.5pt;color:#555">Período: ${periodoStr} &nbsp;·&nbsp; Equipo: ${equipoLabel} &nbsp;·&nbsp; Generado: ${hoy}</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8pt;margin:10pt 0 14pt">
+    <div style="border:0.5pt solid #e5e4e0;border-radius:4pt;padding:6pt 8pt;text-align:center">
+      <div style="font-size:18pt;font-weight:700;color:#BA7517">${cOTE}</div>
+      <div style="font-size:8pt;color:#888;margin-top:2pt">OTE — Externas</div>
+    </div>
+    <div style="border:0.5pt solid #e5e4e0;border-radius:4pt;padding:6pt 8pt;text-align:center">
+      <div style="font-size:18pt;font-weight:700;color:#185FA5">${cOTC}</div>
+      <div style="font-size:8pt;color:#888;margin-top:2pt">OTC — Correctivas</div>
+    </div>
+    <div style="border:0.5pt solid #e5e4e0;border-radius:4pt;padding:6pt 8pt;text-align:center">
+      <div style="font-size:18pt;font-weight:700;color:#1D9E75">${cOTP}</div>
+      <div style="font-size:8pt;color:#888;margin-top:2pt">OTP — Preventivas</div>
+    </div>
+  </div>
+
+  ${filas}
+
+  <div style="margin-top:14pt;border-top:0.5pt solid #ccc;padding-top:8pt;font-size:8.5pt;color:#888;display:flex;justify-content:space-between">
+    <span>Total: ${todas.length} intervención${todas.length !== 1 ? 'es' : ''}</span>
+    <span>CALCAR · Mantenimiento · ${hoy}</span>
+  </div>
+</body>
+</html>`;
+
+  const ventana = window.open('', '_blank', 'width=900,height=700');
+  ventana.document.write(html);
+  ventana.document.close();
+}
+
+function cerrarReportePrint() {
+  g('rep-print-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+
 </script>
 </body>
 </html>
