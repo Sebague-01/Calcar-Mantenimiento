@@ -1235,7 +1235,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="form-group full" id="oc-preview-totales" style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;font-size:13px;display:none">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#888">Subtotal (sin IVA)</span><span class="mono" id="oc-prev-sub">—</span></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#888" id="oc-prev-iva-lbl">IVA (22%)</span><span class="mono" id="oc-prev-iva">—</span></div>
-        <div id="oc-prev-ship-row" style="display:none;justify-content:space-between;margin-bottom:4px"><span style="color:#888">Shipping cost</span><span class="mono" id="oc-prev-ship">—</span></div>
         <div id="oc-prev-rdnd-row" style="display:none;justify-content:space-between;margin-bottom:4px"><span style="color:#888">Redondeo</span><span class="mono" id="oc-prev-rdnd">—</span></div>
         <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid #ddd;padding-top:6px;margin-top:2px"><span>TOTAL</span><span class="mono" id="oc-prev-total">—</span></div>
       </div>
@@ -1546,21 +1545,17 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         </select>
       </div>
       <div class="form-group"><label class="form-label">Redondeo <span class="form-optional">(opcional)</span></label><input type="number" class="form-input" id="oc-redondeo" value="0" step="0.01" placeholder="0.00" oninput="recalcOC()"></div>
-      <div class="form-group"><label class="form-label">Shipping cost <span class="form-optional">(opcional)</span></label><input type="number" class="form-input" id="oc-shipping" value="0" step="0.01" placeholder="0.00" oninput="recalcOC()"></div>
       <div class="form-group"><label class="form-label">Estado</label>
         <select class="form-input" id="oc-estado"><option>Borrador</option><option>Emitida</option><option>Recibida</option><option>Cancelada</option></select>
       </div>
 
       <div class="form-section">Ítems de la orden</div>
       <div class="form-group full">
-        <div style="display:grid;grid-template-columns:90px 1fr 80px 90px 80px 90px 28px;gap:6px;margin-bottom:6px;font-size:11px;font-weight:600;color:#888;padding:0 2px">
-          <span style="text-align:center">Cód.prov.</span><span>Descripción</span><span style="text-align:center">Presentación</span><span style="text-align:center">Cantidad</span><span style="text-align:right">Vto. mín.</span><span style="text-align:right">P. unitario</span><span></span>
+        <div style="display:grid;grid-template-columns:1fr 80px 90px 80px 90px 28px;gap:6px;margin-bottom:6px;font-size:11px;font-weight:600;color:#888;padding:0 2px">
+          <span>Descripción / Código interno</span><span style="text-align:center">Presentación</span><span style="text-align:center">Cantidad</span><span style="text-align:right">Vto. mín.</span><span style="text-align:right">P. unitario</span><span></span>
         </div>
         <div id="oc-items-container"></div>
-        <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-start">
-          <button type="button" class="btn-sec" style="font-size:12px" onclick="addOCItem()"><i class="ti ti-plus"></i> Agregar ítem</button>
-          <button type="button" class="btn-sec" style="font-size:12px" onclick="openModal('m-oc-paste')"><i class="ti ti-clipboard-text"></i> Pegar desde planilla</button>
-        </div>
+        <button type="button" class="btn-sec" style="margin-top:8px;font-size:12px" onclick="addOCItem()"><i class="ti ti-plus"></i> Agregar ítem</button>
       </div>
 
       <div class="form-group full"><label class="form-label">Observaciones <span class="form-optional">(opcional)</span></label><textarea class="form-input" id="oc-obs" rows="2" placeholder="Notas adicionales..."></textarea></div>
@@ -1568,19 +1563,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-oc')">Cancelar</button>
       <button class="btn-primary" onclick="saveOC()"><i class="ti ti-device-floppy"></i> Guardar OC</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal pegado masivo OC -->
-<div class="modal-overlay" id="m-oc-paste">
-  <div class="modal-box narrow">
-    <div class="modal-header"><div class="modal-title">Pegar ítems desde planilla</div><button class="modal-close" onclick="closeModal('m-oc-paste')"><i class="ti ti-x"></i></button></div>
-    <div style="font-size:12px;color:#888;margin-bottom:8px">Copiá un rango de Excel y pegalo acá. Columnas esperadas: <b>Cód.prov. | Descripción | Unidad | Cant. | Vto.mín. | P.unit.</b><br>Si no tenés código de proveedor, empezá directo con la descripción (5 columnas).</div>
-    <textarea id="oc-paste-txt" class="form-input" rows="8" style="font-size:11px;font-family:monospace;width:100%" placeholder="Pegá acá..."></textarea>
-    <div class="form-actions">
-      <button class="btn-sec" onclick="closeModal('m-oc-paste');g('oc-paste-txt').value=''">Cancelar</button>
-      <button class="btn-primary" onclick="importOCPaste()"><i class="ti ti-table-import"></i> Importar filas</button>
     </div>
   </div>
 </div>
@@ -1646,14 +1628,13 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <thead>
           <tr>
             <th style="width:20pt">N°</th>
-            <th style="width:60pt">N° de Parte</th>
-            <th>Descripción</th>
-            <th style="width:40pt">Pres.</th>
-            <th style="width:30pt">Cant.</th>
-            <th style="width:38pt">Vto.mín.</th>
-            <th style="width:44pt">P. unit.</th>
-            <th style="width:32pt">Mon.</th>
-            <th style="width:48pt">Total</th>
+            <th>Descripción / Código interno</th>
+            <th style="width:48pt">Presentación</th>
+            <th style="width:35pt">Cant.</th>
+            <th style="width:42pt">Vto.mín.</th>
+            <th style="width:48pt">P. unit.</th>
+            <th style="width:38pt">Mon.</th>
+            <th style="width:52pt">Total</th>
           </tr>
         </thead>
         <tbody id="oc-pdf-items"></tbody>
@@ -1667,7 +1648,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <table class="oc-totales">
         <tr><td class="lbl">Subtotal</td><td class="num" id="oc-pdf-sub" style="text-align:right;font-family:'Courier New',monospace"></td></tr>
         <tr><td class="lbl" id="oc-pdf-iva-lbl">IVA (22%)</td><td class="num" id="oc-pdf-iva-val" style="text-align:right;font-family:'Courier New',monospace"></td></tr>
-        <tr id="oc-pdf-ship-row" style="display:none"><td class="lbl">Shipping cost</td><td class="num" id="oc-pdf-ship-val" style="text-align:right;font-family:'Courier New',monospace"></td></tr>
         <tr id="oc-pdf-rdnd-row" style="display:none"><td class="lbl">Redondeo</td><td class="num" id="oc-pdf-rdnd-val" style="text-align:right;font-family:'Courier New',monospace"></td></tr>
         <tr class="total-row"><td class="lbl">TOTAL</td><td class="num" id="oc-pdf-total" style="text-align:right;font-family:'Courier New',monospace"></td></tr>
       </table>
@@ -2481,7 +2461,7 @@ async function loadOC(q='',est=''){
   const {data,error}=await query;
   if(error){dbErr(error,'cargar OC');return;}
   // DESPUÉS
-  S.oc=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,ot:r.ot_vinculada,prov:r.proveedor,rut:r.rut_prov,pago:r.cond_pago,entrega:r.fecha_entrega,lugar:r.lugar_entrega,moneda:r.moneda,iva:r.iva_pct,iva_incluido:r.iva_incluido||false,redondeo:r.redondeo||0,shipping:r.shipping_val||0,estado:r.estado,items:r.items||[],subtotal:r.subtotal,ivaVal:r.iva_val,total:r.total,obs:r.observaciones}));
+  S.oc=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,ot:r.ot_vinculada,prov:r.proveedor,rut:r.rut_prov,pago:r.cond_pago,entrega:r.fecha_entrega,lugar:r.lugar_entrega,moneda:r.moneda,iva:r.iva_pct,iva_incluido:r.iva_incluido||false,redondeo:r.redondeo||0,estado:r.estado,items:r.items||[],subtotal:r.subtotal,ivaVal:r.iva_val,total:r.total,obs:r.observaciones}));
   renderOC(S.oc);
 }
 
@@ -2490,9 +2470,8 @@ async function saveOC(){
   const iva     = parseFloat(v('oc-iva'))||0;
   const modo    = g('oc-iva-modo') ? g('oc-iva-modo').value : 'excluido';
   const redondeo= parseFloat(v('oc-redondeo'))||0;
-  const shipping= parseFloat(v('oc-shipping'))||0;
-  const {subtotal,ivaVal,shippingVal,total} = calcOCTotales(items, iva, modo, redondeo, shipping);
-  const row={numero:v('oc-num'),fecha:v('oc-fecha'),ot_vinculada:v('oc-ot')||null,proveedor:v('oc-prov')||null,rut_prov:v('oc-rut')||null,cond_pago:v('oc-pago')||null,fecha_entrega:v('oc-entrega')||null,lugar_entrega:v('oc-lugar')||null,moneda:v('oc-moneda'),iva_pct:iva,iva_incluido:modo==='incluido',redondeo,shipping_val:shipping,estado:v('oc-estado'),items,subtotal,iva_val:ivaVal,total,observaciones:v('oc-obs')||null};
+  const {subtotal,ivaVal,total} = calcOCTotales(items, iva, modo, redondeo);
+  const row={numero:v('oc-num'),fecha:v('oc-fecha'),ot_vinculada:v('oc-ot')||null,proveedor:v('oc-prov')||null,rut_prov:v('oc-rut')||null,cond_pago:v('oc-pago')||null,fecha_entrega:v('oc-entrega')||null,lugar_entrega:v('oc-lugar')||null,moneda:v('oc-moneda'),iva_pct:iva,iva_incluido:modo==='incluido',redondeo,estado:v('oc-estado'),items,subtotal,iva_val:ivaVal,total,observaciones:v('oc-obs')||null};
   loading(true);
   const {error}=await sb.from('ordenes_compra').insert(row);
   loading(false);
@@ -3673,13 +3652,12 @@ function autoRutOC(){
 }
 
 // Agregar fila de ítem en el modal
-function addOCItem(desc='',pres='',cant='',vto='',pu='',codprov=''){
+function addOCItem(desc='',pres='',cant='',vto='',pu=''){
   ocItemCount++;
   const div=document.createElement('div');
-  div.style.cssText='display:grid;grid-template-columns:90px 1fr 80px 90px 80px 90px 28px;gap:6px;margin-bottom:6px;align-items:center';
+  div.style.cssText='display:grid;grid-template-columns:1fr 80px 90px 80px 90px 28px;gap:6px;margin-bottom:6px;align-items:center';
   div.innerHTML=
-    '<input type="text" class="form-input" placeholder="Cód.prov." value="'+codprov+'" style="font-size:12px;text-align:center">'
-    +'<input type="text" class="form-input" placeholder="Descripción..." value="'+desc+'" style="font-size:12px">'
+    '<input type="text" class="form-input" placeholder="Descripción o código..." value="'+desc+'" style="font-size:12px">'
     +'<input type="text" class="form-input" placeholder="Unidad" value="'+pres+'" style="font-size:12px;text-align:center">'
     +'<input type="number" class="form-input" placeholder="Cant." value="'+cant+'" style="font-size:12px;text-align:right" oninput="recalcOC()">'
     +'<input type="text" class="form-input" placeholder="Vto." value="'+vto+'" style="font-size:12px;text-align:right">'
@@ -3688,61 +3666,27 @@ function addOCItem(desc='',pres='',cant='',vto='',pu='',codprov=''){
   g('oc-items-container').appendChild(div);
 }
 
-function importOCPaste(){
-  const txt=g('oc-paste-txt').value.trim();
-  if(!txt) return;
-  const toNum=s=>parseFloat((s||'').replace(',','.'))||0;
-  const lines=txt.split('\n').filter(l=>l.trim());
-  let imported=0;
-  lines.forEach(line=>{
-    const cols=line.split('\t').map(c=>c.trim());
-    let codprov='',desc='',pres='',cant='',vto='',pu='';
-    if(cols.length>=6){
-      [codprov,desc,pres,cant,vto,pu]=cols;
-    } else if(cols.length===5){
-      [desc,pres,cant,vto,pu]=cols;
-    } else {
-      desc=cols[0]||''; pres=cols[1]||''; cant=cols[2]||''; vto=cols[3]||''; pu=cols[4]||'';
-    }
-    if(!desc) return;
-    // Saltar fila de encabezado
-    if(desc.toLowerCase()==='descripción'||desc.toLowerCase()==='descripcion'||desc.toLowerCase()==='desc') return;
-    addOCItem(desc, pres, toNum(cant), vto, toNum(pu), codprov);
-    imported++;
-  });
-  closeModal('m-oc-paste');
-  g('oc-paste-txt').value='';
-  if(imported) alert(imported+' ítem'+(imported>1?'s':'')+' importado'+(imported>1?'s':'')+' correctamente.');
-}
-
 function recalcOC(){
   const items = getOCItems();
   if(!items.length){ g('oc-preview-totales').style.display='none'; return; }
   const iva     = parseFloat(v('oc-iva'))||0;
   const modo    = g('oc-iva-modo') ? g('oc-iva-modo').value : 'excluido';
   const redondeo= parseFloat(v('oc-redondeo'))||0;
-  const shipping= parseFloat(v('oc-shipping'))||0;
   const moneda  = v('oc-moneda')||'';
-  let subtotal, ivaVal, shippingVal, total;
+  let subtotal, ivaVal, total;
   if(modo==='incluido'){
     const sumaConIva = items.reduce((s,i)=>s+(i.cant*i.pu),0);
     subtotal = sumaConIva / (1 + iva/100);
     ivaVal   = sumaConIva - subtotal;
-    total    = sumaConIva + shipping + redondeo;
+    total    = sumaConIva + redondeo;
   } else {
     subtotal = items.reduce((s,i)=>s+(i.cant*i.pu),0);
     ivaVal   = subtotal * iva / 100;
-    total    = subtotal + ivaVal + shipping + redondeo;
+    total    = subtotal + ivaVal + redondeo;
   }
   g('oc-prev-sub').textContent  = moneda+' '+subtotal.toFixed(2);
   g('oc-prev-iva-lbl').textContent = 'IVA ('+iva+'%)';
   g('oc-prev-iva').textContent  = moneda+' '+ivaVal.toFixed(2);
-  if(shipping!==0){
-    if(g('oc-prev-ship-row')) g('oc-prev-ship-row').style.display='flex';
-    if(g('oc-prev-ship')) g('oc-prev-ship').textContent = moneda+' '+shippingVal.toFixed(2);
-  } else {
-    if(g('oc-prev-ship-row')) g('oc-prev-ship-row').style.display='none';
-  }
   if(redondeo!==0){
     g('oc-prev-rdnd-row').style.display='flex';
     g('oc-prev-rdnd').textContent = moneda+' '+(redondeo>=0?'+':'')+redondeo.toFixed(2);
@@ -3753,19 +3697,19 @@ function recalcOC(){
   g('oc-preview-totales').style.display='';
 }
 
-function calcOCTotales(items, iva, modo, redondeo, shipping=0){
+function calcOCTotales(items, iva, modo, redondeo){
   let subtotal, ivaVal, total;
   if(modo==='incluido'){
     const sumaConIva = items.reduce((s,i)=>s+(i.cant*i.pu),0);
     subtotal = sumaConIva / (1 + iva/100);
     ivaVal   = sumaConIva - subtotal;
-    total    = sumaConIva + shipping + redondeo;
+    total    = sumaConIva + redondeo;
   } else {
     subtotal = items.reduce((s,i)=>s+(i.cant*i.pu),0);
     ivaVal   = subtotal * iva / 100;
-    total    = subtotal + ivaVal + shipping + redondeo;
+    total    = subtotal + ivaVal + redondeo;
   }
-  return { subtotal, ivaVal, shippingVal: shipping, total };
+  return { subtotal, ivaVal, total };
 }
 
 function getOCItems(){
@@ -3773,14 +3717,13 @@ function getOCItems(){
   const items=[];
   for(const r of rows){
     const ins=r.querySelectorAll('input');
-    if(ins[1]&&ins[1].value.trim()){
+    if(ins[0]&&ins[0].value.trim()){
       items.push({
-        codprov:ins[0]?ins[0].value.trim():'',
-        desc:ins[1].value.trim(),
-        pres:ins[2]?ins[2].value.trim():'',
-        cant:parseFloat(ins[3]?ins[3].value:0)||0,
-        vto:ins[4]?ins[4].value.trim():'',
-        pu:parseFloat(ins[5]?ins[5].value:0)||0
+        desc:ins[0].value.trim(),
+        pres:ins[1]?ins[1].value.trim():'',
+        cant:parseFloat(ins[2]?ins[2].value:0)||0,
+        vto:ins[3]?ins[3].value.trim():'',
+        pu:parseFloat(ins[4]?ins[4].value:0)||0
       });
     }
   }
@@ -3810,7 +3753,6 @@ async function openOCModal(){
   g('oc-iva').value='22';
   if(g('oc-iva-modo'))  g('oc-iva-modo').value  = 'excluido';
   if(g('oc-redondeo'))  g('oc-redondeo').value   = 0;
-  if(g('oc-shipping'))  g('oc-shipping').value   = 0;
   g('oc-preview-totales').style.display = 'none';
   g('oc-estado').value='Borrador';
   g('oc-items-container').innerHTML='';
@@ -3842,166 +3784,58 @@ function renderOC(arr){
   }).join('');
 }
 
-// Imprimir OC A4 — ventana nueva para soporte multipágina
+// Imprimir OC A4 horizontal
 function printOC(idx){
   const o=S.oc[idx];
-  const logoUrl='https://ksywioicxkusnkcvsper.supabase.co/storage/v1/object/public/logo/logo%20calcar.jpg';
-  const docCfg=S.docConfig&&S.docConfig.oc||{};
-  const codLabel=docCfg.cod?(docCfg.cod+(docCfg.rev?' '+docCfg.rev:'')):'REG.COM.013';
-
-  const itemsHTML=(o.items||[]).map((it,i)=>'<tr>'
-    +'<td class="center">'+(i+1)+'</td>'
-    +'<td style="font-family:Courier New,monospace;font-size:7.5pt;color:#444">'+(it.codprov||'—')+'</td>'
-    +'<td>'+it.desc+'</td>'
-    +'<td class="center">'+(it.pres||'')+'</td>'
-    +'<td class="center">'+it.cant+'</td>'
+  console.log('OC data:', JSON.stringify(o));
+  g('oc-pdf-num').textContent=o.num;
+  g('oc-pdf-fecha').textContent='Fecha: '+o.fecha;
+  g('oc-pdf-ot').textContent=o.ot?'OT vinculada: '+o.ot:'';
+  g('oc-pdf-prov').textContent=o.prov||'—';
+  g('oc-pdf-rut').textContent=o.rut||'—';
+  g('oc-pdf-pago').textContent=o.pago||'—';
+  g('oc-pdf-moneda').textContent=o.moneda;
+  g('oc-pdf-entrega').textContent=o.entrega||'N/A';
+  g('oc-pdf-lugar').textContent=o.lugar||'N/A';
+  g('oc-pdf-obs').textContent=o.obs||'';
+  g('oc-pdf-obs-wrap').style.display=o.obs?'':'none';
+  const MIN_ROWS=10;
+  const numItems=(o.items||[]).length;
+  g('oc-pdf-items').innerHTML=(o.items||[]).map((it,i)=>'<tr>'
+    +'<td class="center">'+(i+1)+'</td><td>'+it.desc+'</td>'
+    +'<td class="center">'+it.pres+'</td><td class="center">'+it.cant+'</td>'
     +'<td class="center">'+(it.vto||'—')+'</td>'
     +'<td class="num">'+Number(it.pu||0).toFixed(2)+'</td>'
     +'<td class="center">'+o.moneda+'</td>'
     +'<td class="num">'+Number((it.cant||0)*(it.pu||0)).toFixed(2)+'</td>'
     +'</tr>').join('');
-
-  const shippingRow=o.shipping&&o.shipping!==0
-    ?'<tr><td class="lbl">Shipping cost</td><td class="num">'+o.moneda+' '+Number(o.shipping||0).toFixed(2)+'</td></tr>':'' ;
-  const rdndRow=o.redondeo&&o.redondeo!==0
-    ?'<tr><td class="lbl">Redondeo</td><td class="num">'+o.moneda+' '+(o.redondeo>=0?'+':'')+Number(o.redondeo).toFixed(2)+'</td></tr>':'';
-  const obsBlock=o.obs
-    ?'<div class="oc-obs-sec">Observaciones</div><div class="oc-obs-box">'+o.obs+'</div>':'';
-  const otLine=o.ot?'<div style="font-size:8pt;color:#888;margin-top:2pt">OT vinculada: '+o.ot+'</div>':'';
-
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>OC ${o.num}</title>
-<style>
-@page { size: A4 portrait; margin: 10mm 12mm; }
-body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #1a1a18; margin:0; padding:0; background:#fff; }
-.oc-page { width:100%; }
-.oc-header { display:flex; align-items:stretch; border:1.5pt solid #333; }
-.oc-logo-cell { width:120pt; border-right:1.5pt solid #333; display:flex; align-items:center; justify-content:center; padding:6pt; }
-.oc-logo-img { max-width:110pt; max-height:50pt; object-fit:contain; }
-.oc-title-cell { flex:1; display:flex; align-items:center; justify-content:center; font-size:14pt; font-weight:700; text-transform:uppercase; letter-spacing:1pt; border-right:1.5pt solid #333; padding:6pt; text-align:center; }
-.oc-reg-cell { width:100pt; display:flex; flex-direction:column; justify-content:center; padding:5pt 8pt; font-size:8pt; line-height:1.7; }
-.oc-reg-cell div:first-child { font-weight:700; }
-.oc-empresa { display:flex; border-left:1.5pt solid #333; border-right:1.5pt solid #333; border-bottom:1pt solid #ccc; }
-.oc-empresa-left { flex:1; padding:5pt 8pt; border-right:1pt solid #ccc; }
-.oc-empresa-right { width:160pt; padding:5pt 8pt; }
-.oc-empresa-name { font-size:11pt; font-weight:700; margin-bottom:2pt; }
-.oc-empresa-sub { font-size:8pt; color:#444; line-height:1.5; }
-.oc-datos { border-left:1.5pt solid #333; border-right:1.5pt solid #333; }
-.oc-fila { display:flex; border-bottom:1pt solid #e0e0e0; }
-.oc-fila:last-child { border-bottom:none; }
-.oc-celda-lbl { width:110pt; padding:4pt 8pt; font-size:8pt; font-weight:700; color:#555; background:#f4f4f4; border-right:1pt solid #ddd; flex-shrink:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-.oc-celda-val { flex:1; padding:4pt 8pt; font-size:9pt; }
-.oc-celda-lbl2 { width:110pt; padding:4pt 8pt; font-size:8pt; font-weight:700; color:#555; background:#f4f4f4; border-left:1pt solid #ddd; border-right:1pt solid #ddd; flex-shrink:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-.oc-celda-val2 { flex:1; padding:4pt 8pt; font-size:9pt; }
-.oc-items-wrap { border:1.5pt solid #333; border-top:1pt solid #ccc; }
-.oc-items { width:100%; border-collapse:collapse; font-size:8pt; }
-.oc-items th { padding:4pt; font-size:7pt; font-weight:700; text-transform:uppercase; background:#2a2a28; color:#fff; text-align:center; border-right:1pt solid #444; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-.oc-items th:last-child { border-right:none; }
-.oc-items td { padding:4pt; border-bottom:1pt solid #e8e8e8; border-right:1pt solid #e8e8e8; vertical-align:middle; font-size:8pt; }
-.oc-items td:last-child { border-right:none; }
-.oc-items tr { page-break-inside:avoid; }
-.num { text-align:right; font-family:'Courier New',monospace; }
-.center { text-align:center; }
-.oc-totales-wrap { border-left:1.5pt solid #333; border-right:1.5pt solid #333; border-bottom:1.5pt solid #333; display:flex; justify-content:flex-end; }
-.oc-totales { border-collapse:collapse; width:200pt; }
-.oc-totales td { padding:3pt 6pt; border-top:1pt solid #e0e0e0; font-size:8pt; }
-.oc-totales .lbl { font-weight:700; background:#f4f4f4; border-right:1pt solid #ddd; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-.oc-totales .total-row td { font-size:10pt; font-weight:700; background:#2a2a28; color:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-.oc-obs-sec { font-size:7pt; font-weight:700; text-transform:uppercase; color:#777; border-bottom:1pt solid #ddd; padding-bottom:2pt; margin:8pt 0 4pt; letter-spacing:.4pt; }
-.oc-obs-box { border:1pt solid #ddd; border-radius:2pt; padding:4pt 6pt; min-height:22pt; font-size:8pt; line-height:1.3; }
-.oc-firmas { display:grid; grid-template-columns:1fr 1fr; gap:16pt; margin-top:10pt; }
-.oc-firma { display:flex; flex-direction:column; align-items:center; gap:3pt; }
-.oc-firma-line { width:100%; border-bottom:1.5pt solid #333; height:22pt; }
-.oc-firma-lbl { font-size:7pt; font-weight:700; text-transform:uppercase; text-align:center; color:#333; }
-.oc-firma-sub { font-size:6pt; color:#aaa; text-align:center; }
-.oc-footer { display:flex; justify-content:space-between; font-size:6pt; color:#aaa; border-top:1pt solid #ddd; padding-top:3pt; margin-top:6pt; }
-.no-print { position:fixed; top:12px; right:12px; display:flex; gap:8px; }
-.no-print button { padding:8px 16px; border-radius:6px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:600; border:none; }
-.btn-print { background:#1D9E75; color:#fff; }
-.btn-close { background:#eee; color:#333; }
-@media print { .no-print { display:none !important; } }
-</style></head><body>
-<div class="no-print">
-  <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
-  <button class="btn-close" onclick="window.close()">✕ Cerrar</button>
-</div>
-<div class="oc-page">
-  <div class="oc-header">
-    <div class="oc-logo-cell"><img class="oc-logo-img" src="${logoUrl}" alt="CALCAR"></div>
-    <div class="oc-title-cell">Orden de Compra</div>
-    <div class="oc-reg-cell">
-      <div>${codLabel}</div>
-      <div>Pág. 1 de 1</div>
-    </div>
-  </div>
-  <div class="oc-empresa">
-    <div class="oc-empresa-left">
-      <div class="oc-empresa-name">NOFROCK SAS</div>
-      <div class="oc-empresa-sub">RUT: 219921200017</div>
-      <div class="oc-empresa-sub">Camino Méndez 2350 - Montevideo</div>
-      <div class="oc-empresa-sub">Departamento de Mantenimiento — CALCAR</div>
-    </div>
-    <div class="oc-empresa-right">
-      <div style="font-size:8pt;font-weight:700;color:#888;margin-bottom:3pt">N° ORDEN DE COMPRA</div>
-      <div style="font-size:16pt;font-weight:700;font-family:'Courier New',monospace">${o.num}</div>
-      <div style="font-size:8pt;color:#888;margin-top:2pt">Fecha: ${o.fecha}</div>
-      ${otLine}
-    </div>
-  </div>
-  <div class="oc-datos">
-    <div class="oc-fila">
-      <div class="oc-celda-lbl">Proveedor</div><div class="oc-celda-val">${o.prov||'—'}</div>
-      <div class="oc-celda-lbl2">RUT proveedor</div><div class="oc-celda-val2">${o.rut||'—'}</div>
-    </div>
-    <div class="oc-fila">
-      <div class="oc-celda-lbl">Condición de pago</div><div class="oc-celda-val">${o.pago||'—'}</div>
-      <div class="oc-celda-lbl2">Moneda</div><div class="oc-celda-val2">${o.moneda}</div>
-    </div>
-    <div class="oc-fila">
-      <div class="oc-celda-lbl">Fecha de entrega</div><div class="oc-celda-val">${o.entrega||'N/A'}</div>
-      <div class="oc-celda-lbl2">Lugar de entrega</div><div class="oc-celda-val2">${o.lugar||'N/A'}</div>
-    </div>
-  </div>
-  <div class="oc-items-wrap">
-    <table class="oc-items">
-      <thead><tr>
-        <th style="width:20pt">N°</th>
-        <th style="width:60pt">N° de Parte</th>
-        <th>Descripción</th>
-        <th style="width:40pt">Pres.</th>
-        <th style="width:30pt">Cant.</th>
-        <th style="width:38pt">Vto.mín.</th>
-        <th style="width:44pt">P. unit.</th>
-        <th style="width:32pt">Mon.</th>
-        <th style="width:48pt">Total</th>
-      </tr></thead>
-      <tbody>${itemsHTML}</tbody>
-    </table>
-  </div>
-  <div class="oc-totales-wrap">
-    <table class="oc-totales">
-      <tr><td class="lbl">Subtotal</td><td class="num">${o.moneda} ${Number(o.subtotal||0).toFixed(2)}</td></tr>
-      <tr><td class="lbl">IVA (${o.iva}%)${o.iva_incluido?' — incluido':''}</td><td class="num">${o.moneda} ${Number(o.ivaVal||0).toFixed(2)}</td></tr>
-      ${shippingRow}
-      ${rdndRow}
-      <tr class="total-row"><td class="lbl">TOTAL</td><td class="num">${o.moneda} ${Number(o.total||0).toFixed(2)}</td></tr>
-    </table>
-  </div>
-  ${obsBlock}
-  <div class="oc-firmas">
-    <div class="oc-firma"><div class="oc-firma-line"></div><div class="oc-firma-lbl">Solicitado por</div><div class="oc-firma-sub">Nombre / Aclaración / Fecha</div></div>
-    <div class="oc-firma"><div class="oc-firma-line"></div><div class="oc-firma-lbl">Aprobado por</div><div class="oc-firma-sub">Nombre / Aclaración / Fecha</div></div>
-  </div>
-  <div class="oc-footer">
-    <span>CALCAR · NOFROCK SAS — Sistema de Gestión de Compras</span>
-    <span>${o.num} · ${new Date().toLocaleDateString('es-UY')}</span>
-  </div>
-</div>
-</body></html>`;
-
-  const w=window.open('','_blank');
-  w.document.write(html);
-  w.document.close();
+  // Solo agregar filas vacías si hay menos de MIN_ROWS (para OC cortas)
+  const empties=numItems<MIN_ROWS?Math.max(0,MIN_ROWS-numItems):0;
+  g('oc-pdf-empty-rows').innerHTML=Array(empties).fill('<tr><td class="center" style="color:#ddd">·</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
+  g('oc-pdf-sub').textContent=o.moneda+' '+Number(o.subtotal||0).toFixed(2);
+  g('oc-pdf-iva-lbl').textContent='IVA ('+o.iva+'%)'+(o.iva_incluido?' — incluido':'');
+  g('oc-pdf-iva-val').textContent=o.moneda+' '+Number(o.ivaVal||0).toFixed(2);
+  // Redondeo
+  const rdndRow = document.getElementById('oc-pdf-rdnd-row');
+  if(rdndRow){
+    if(o.redondeo && o.redondeo!==0){
+      rdndRow.style.display='';
+      // DESPUÉS
+      document.getElementById('oc-pdf-rdnd-val').textContent=o.moneda+' '+(o.redondeo>=0?'+':'')+Number(o.redondeo).toFixed(2);
+    } else {
+      rdndRow.style.display='none';
+    }
+  }
+  g('oc-pdf-total').textContent=o.moneda+' '+Number(o.total||0).toFixed(2);
+  g('oc-pdf-footer').textContent=o.num+' · '+new Date().toLocaleDateString('es-UY');
+  const styleEl=document.createElement('style');
+  styleEl.id='oc-portrait-style';
+  styleEl.textContent='@media print { @page { size: A4 portrait; margin: 10mm 12mm; } }';
+  document.head.appendChild(styleEl);
+  ['print-area','print-ver','print-blank','print-prev'].forEach(id=>g(id).classList.remove('printing'));
+  g('print-oc').classList.add('printing');
+  window.print();
+  setTimeout(()=>{g('print-oc').classList.remove('printing');const s=document.getElementById('oc-portrait-style');if(s)s.remove();},500);
 }
 
 
@@ -4258,7 +4092,6 @@ async function editOC(idx){
   g('oc-moneda').value = o.moneda||'UYU';
   g('oc-iva').value   = o.iva||22;
   if(g('oc-iva-modo')) g('oc-iva-modo').value = o.iva_incluido ? 'incluido' : 'excluido';
-  if(g('oc-shipping')) g('oc-shipping').value = o.shipping||0;
   if(g('oc-redondeo')) g('oc-redondeo').value  = o.redondeo || 0;
   g('oc-estado').value = o.estado||'Borrador';
   g('oc-obs').value   = o.obs||'';
@@ -4267,7 +4100,7 @@ async function editOC(idx){
   g('oc-items-container').innerHTML = '';
   ocItemCount = 0;
   const items = o.items||[];
-  if(items.length) items.forEach(it => addOCItem(it.desc||'', it.pres||'', it.cant||'', it.vto||'', it.pu||'', it.codprov||''));
+  if(items.length) items.forEach(it => addOCItem(it.desc||'', it.pres||'', it.cant||'', it.vto||'', it.pu||''));
   else { addOCItem(); addOCItem(); }
 
   // Cambiar título y botón del modal
@@ -4285,8 +4118,7 @@ async function saveOCEdit(){
   const iva     = parseFloat(v('oc-iva'))||0;
   const modo    = g('oc-iva-modo') ? g('oc-iva-modo').value : 'excluido';
   const redondeo= parseFloat(v('oc-redondeo'))||0;
-  const shipping= parseFloat(v('oc-shipping'))||0;
-  const {subtotal,ivaVal,shippingVal,total} = calcOCTotales(items, iva, modo, redondeo, shipping);
+  const {subtotal,ivaVal,total} = calcOCTotales(items, iva, modo, redondeo);
   const row = {
     ot_vinculada : v('oc-ot')||null,
     proveedor    : v('oc-prov')||null,
@@ -4297,7 +4129,7 @@ async function saveOCEdit(){
     moneda       : v('oc-moneda'),
     iva_pct      : iva,
     iva_incluido : modo==='incluido',
-    redondeo, shipping_val:shipping,
+    redondeo,
     estado       : v('oc-estado'),
     items, subtotal, iva_val:ivaVal, total,
     observaciones: v('oc-obs')||null
@@ -5048,8 +4880,8 @@ async function generarReportePlanPreventivo(){
   // Resumen
   const cEq = Object.keys(grupos).length;
   const cTar = tareas.length;
-  const cCal = tareas.filter(t=>!t.intervalo_hs).length;
-  const cHs  = tareas.filter(t=>!!t.intervalo_hs).length;
+  const cCal = tareas.filter(t=>!t.hs).length;
+  const cHs  = tareas.filter(t=>!!t.hs).length;
   g('rpp-resumen-txt').textContent = `${cEq} equipo${cEq!==1?'s':''} · ${cTar} tarea${cTar!==1?'s':''} · ${cCal} calendario · ${cHs} horómetro`;
 
   // Preview en pantalla
@@ -5072,8 +4904,8 @@ async function generarReportePlanPreventivo(){
         </thead>
         <tbody>`;
     rows.forEach(t=>{
-      const freq = t.intervalo_hs ? `${t.intervalo_hs} hs` : (t.dias_ciclo ? `${t.dias_ciclo} días` : (t.frecuencia||'—'));
-      const freqColor = t.intervalo_hs ? '#7B4FBE' : '#185FA5';
+      const freq = t.hs ? `${t.hs} hs` : (t.diasCiclo ? `${t.diasCiclo} días` : (t.freq||'—'));
+      const freqColor = t.hs ? '#7B4FBE' : '#185FA5';
       const instCod = t.inst_cod||'';
       const instResumen = instCod&&instMap[instCod] ? instMap[instCod].resumen : '';
       html += `<tr style="border-bottom:1px solid #f8f7f4">
@@ -5126,8 +4958,8 @@ function imprimirPlanPreventivo(){
           </thead>
           <tbody>
             ${rows.map(t=>{
-              const freq = t.intervalo_hs ? `${t.intervalo_hs} hs` : (t.dias_ciclo ? `${t.dias_ciclo} días` : (t.frecuencia||'—'));
-              const freqColor = t.intervalo_hs ? '#7B4FBE' : '#185FA5';
+              const freq = t.hs ? `${t.hs} hs` : (t.diasCiclo ? `${t.diasCiclo} días` : (t.freq||'—'));
+              const freqColor = t.hs ? '#7B4FBE' : '#185FA5';
               const instCod = t.inst_cod||'';
               return `<tr style="border-bottom:0.5pt solid #f0efe9">
                 <td style="padding:4pt 7pt;font-family:monospace;font-size:8pt;color:#555">${t.codigo||'—'}</td>
