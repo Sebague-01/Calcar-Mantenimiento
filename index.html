@@ -155,8 +155,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   @page { size: A4 portrait; margin: 14mm 16mm; }
   body * { visibility: hidden; }
   #print-area.printing *, #print-ver.printing * { visibility: visible; }
-  #print-area.printing { display: block !important; position: fixed; top:0; left:0; width:100%; background:#fff; }
-  #print-ver.printing { display: block !important; position: fixed; top:0; left:0; width:100%; background:#fff; }
+  #print-area.printing { display: block !important; position: static; width:100%; background:#fff; }
+  #print-ver.printing { display: block !important; position: static; width:100%; background:#fff; }
 
   /* Estilos comunes impresión */
   .pp, .pv { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a18; }
@@ -251,12 +251,12 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   .pb-blank-note { font-size: 8pt; color: #bbb; text-align: center; margin: 4pt 0; font-style: italic; }
 
   #print-blank.printing * { visibility: visible; }
-  #print-blank.printing { display: block !important; position: fixed; top:0; left:0; width:100%; background:#fff; }
+  #print-blank.printing { display: block !important; position: static; width:100%; background:#fff; }
 
   /* PDF Preventivo */
   #print-prev { display: none; }
   #print-prev.printing * { visibility: visible; }
-  #print-prev.printing { display: block !important; position: fixed; top:0; left:0; width:100%; background:#fff; }
+  #print-prev.printing { display: block !important; position: static; width:100%; background:#fff; }
   .prev-page { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a18; }
   .prev-header { display: flex; align-items: stretch; justify-content: space-between; border-bottom: 3pt solid #185FA5; padding-bottom: 8pt; margin-bottom: 10pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .prev-logo { width: 42pt; height: 42pt; background: #185FA5 !important; border-radius: 5pt; display: flex; align-items: center; justify-content: center; font-size: 15pt; font-weight: 700; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -273,14 +273,21 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   .prev-fv { font-size: 10pt; font-weight: 500; border-bottom: 1pt solid #e0e0e0; padding-bottom: 2pt; min-height: 14pt; }
   .prev-box { border: 1pt solid #ddd; border-radius: 3pt; padding: 6pt 8pt; min-height: 48pt; font-size: 10pt; line-height: 1.5; }
   /* Tabla de checkpoints */
-  .prev-checks { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 4pt; }
+  .prev-checks { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 4pt; page-break-inside: auto; }
+  .prev-checks thead { display: table-header-group; }
   .prev-checks th { text-align: left; padding: 5pt 8pt; font-size: 8pt; font-weight: 700; text-transform: uppercase; color: #777; border-bottom: 1.5pt solid #185FA5; background: #f0f4ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .prev-checks tr { page-break-inside: avoid; }
   .prev-checks td { padding: 7pt 8pt; border-bottom: 1pt solid #eee; vertical-align: middle; }
   .prev-checks .check-box { width: 12pt; height: 12pt; border: 1.5pt solid #555; border-radius: 2pt; display: inline-block; }
   /* Insumos */
-  .prev-insumos { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 4pt; }
+  .prev-insumos { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 4pt; page-break-inside: auto; }
+  .prev-insumos thead { display: table-header-group; }
   .prev-insumos th { text-align: left; padding: 5pt 8pt; font-size: 8pt; font-weight: 700; text-transform: uppercase; color: #777; border-bottom: 1pt solid #ddd; background: #fafaf8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .prev-insumos tr { page-break-inside: avoid; }
   .prev-insumos td { padding: 6pt 8pt; border-bottom: 1pt solid #eee; }
+  /* Evitar que encabezados de sección queden huérfanos al final de hoja */
+  /* Se quitó break-after:avoid de .prev-sec — forzaba que el título de sección (ej. "Registro de ejecución") empujara todo su bloque a la página siguiente, dejando un hueco grande al final de la hoja anterior */
+  /* Nota: se quitó break-inside:avoid de prev-firmas — generaba un salto de página con hueco grande en Chrome al no entrar el bloque completo al final de la hoja */
   /* Lecturas */
   .prev-lecturas { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10pt; margin-bottom: 4pt; }
   /* Firmas */
@@ -307,7 +314,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   /* OC A4 */
   #print-oc { display: none; }
   #print-oc.printing * { visibility: visible; }
-  #print-oc.printing { display: block !important; position: fixed; top:0; left:0; width:100%; background:#fff; }
+  #print-oc.printing { display: block !important; position: static; width:100%; background:#fff; }
   .oc-page { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #1a1a18; width: 100%; page-break-after: auto; }  .oc-header { display: flex; align-items: stretch; border: 1.5pt solid #333; }
   .oc-logo-cell { width: 120pt; border-right: 1.5pt solid #333; display: flex; align-items: center; justify-content: center; padding: 6pt; }
   .oc-logo-img { max-width: 110pt; max-height: 50pt; object-fit: contain; }
@@ -1338,6 +1345,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
       <div class="form-group"><label class="form-label">Frecuencia</label>
         <select class="form-input" id="tar-freq" onchange="onFreqChange()">
+          <option value="Sin frecuencia">Sin frecuencia (solo horómetro)</option>
           <option value="Diaria">Diaria (1 día)</option>
           <option value="Semanal" selected>Semanal (7 días)</option>
           <option value="Quincenal">Quincenal (14 días)</option>
@@ -1354,12 +1362,11 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <input type="number" class="form-input" id="tar-dias" placeholder="ej: 21" min="1">
         <span class="form-hint">Ingresá el ciclo exacto en días</span>
       </div>
-      <div class="form-group">
+      <div class="form-group" id="tar-fecha-ini-wrap">
         <label class="form-label">Fecha de inicio del plan <span style="color:#A32D2D">*</span></label>
         <input type="date" class="form-input" id="tar-fecha-ini">
         <span class="form-hint">Primera ejecución programada — define todo el calendario anual</span>
       </div>
-      <div class="form-group"><label class="form-label">Intervalo en horas <span class="form-optional">(opcional)</span></label><input type="number" class="form-input" id="tar-hs" placeholder="ej: 500"></div>
       <div class="form-group"><label class="form-label">Tiempo estimado</label><input type="text" class="form-input" id="tar-tiempo" placeholder="ej: 2 horas"></div>
       <div class="form-group"><label class="form-label">Técnico asignado <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="tar-tec" placeholder="Nombre del técnico"></div>
 
@@ -1462,7 +1469,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div>
           <div class="pp-company">CALCAR</div>
           <div class="pp-subco">NOFROCK SAS &nbsp;·&nbsp; RUT: 219921200017</div>
-          <div class="pp-plant">Camino Méndez 2350 — Montevideo, Uruguay</div>
+          <div class="pp-plant">Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
           <div class="pp-plant">Departamento de Mantenimiento — Mantenimiento Preventivo</div>
         </div>
       </div>
@@ -1790,7 +1797,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div>
           <div class="pp-company">CALCAR</div>
           <div class="pp-subco">NOFROCK SAS &nbsp;·&nbsp; RUT: 219921200017</div>
-          <div class="pp-plant">Camino Méndez 2350 — Montevideo, Uruguay</div>
+          <div class="pp-plant">Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
           <div class="pp-plant">Departamento de Mantenimiento</div>
         </div>
       </div>
@@ -1830,7 +1837,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div>
           <div class="pp-company">CALCAR</div>
           <div class="pp-subco">NOFROCK SAS &nbsp;·&nbsp; RUT: 219921200017</div>
-          <div class="pp-plant">Camino Méndez 2350 — Montevideo, Uruguay</div>
+          <div class="pp-plant">Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
         </div>
       </div>
       <div style="text-align:right">
@@ -1865,7 +1872,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div>
           <div class="pp-company">CALCAR</div>
           <div class="pp-subco">NOFROCK SAS &nbsp;·&nbsp; RUT: 219921200017</div>
-          <div class="pp-plant">Camino Méndez 2350 — Montevideo, Uruguay</div>
+          <div class="pp-plant">Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
           <div class="pp-plant">Departamento de Mantenimiento</div>
         </div>
       </div>
@@ -1887,16 +1894,14 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="pb-g3">
         <div class="pb-f"><div class="pb-fl">Equipo</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Proveedor</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">RUT proveedor</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Tipo de trabajo</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">RUT del proveedor</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">N° Factura asociada</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Estado</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Presupuesto ($)</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Costo real ($)</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Conforme</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Fecha de emisión</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Fecha de cierre</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl"></div><div class="pb-fv" style="border:none"></div></div>
+        <div class="pb-f"><div class="pb-fl">Presupuesto</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Costo real</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">N° Factura</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Fecha cierre</div><div class="pb-fv"></div></div>
       </div>
       <div class="pb-sec">Descripción del trabajo</div>
       <div class="pb-box"></div>
@@ -1917,7 +1922,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div class="pb-f"><div class="pb-fl">Prioridad</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Estado</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Horas estimadas</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Fecha de emisión</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Hora de inicio</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Hora de finalización</div><div class="pb-fv"></div></div>
       </div>
@@ -1937,28 +1941,47 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="pb-sec">Identificación</div>
       <div class="pb-g3">
         <div class="pb-f"><div class="pb-fl">Equipo</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Técnico responsable</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Tipo</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Prioridad</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Estado</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Horas estimadas</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Fecha de emisión</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Fecha de cierre</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl"></div><div class="pb-fv" style="border:none"></div></div>
+        <div class="pb-f"><div class="pb-fl">Código tarea</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Descripción</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Frecuencia</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Umbral horómetro</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Tiempo estimado</div><div class="pb-fv"></div></div>
       </div>
-      <div class="pb-sec">Descripción / Tarea</div>
-      <div class="pb-box"></div>
-      <div class="pb-sec">Observaciones / Cierre</div>
+      <div class="pb-sec">Pasos a verificar</div>
+      <table class="prev-checks">
+        <thead><tr><th style="width:22pt">✓</th><th>Paso / Acción</th><th style="width:80pt">Observación</th></tr></thead>
+        <tbody>
+          <tr><td><span class="check-box"></span></td><td></td><td></td></tr>
+          <tr><td><span class="check-box"></span></td><td></td><td></td></tr>
+          <tr><td><span class="check-box"></span></td><td></td><td></td></tr>
+          <tr><td><span class="check-box"></span></td><td></td><td></td></tr>
+          <tr><td><span class="check-box"></span></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="pb-sec">Insumos requeridos</div>
+      <table class="prev-insumos">
+        <thead><tr><th>Descripción</th><th style="width:60pt">Cantidad</th><th style="width:80pt">Observación</th></tr></thead>
+        <tbody>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="pb-sec">Ejecución</div>
+      <div class="pb-g3">
+        <div class="pb-f"><div class="pb-fl">Fecha de ejecución</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Horas del equipo</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Técnico ejecutor</div><div class="pb-fv"></div></div>
+      </div>
+      <div class="pb-sec">Observaciones</div>
       <div class="pb-box" style="min-height:40pt"></div>
       <div class="pb-sec">Firmas</div>
       <div class="pb-firmas">
-        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Funcionario</div><div class="pb-firma-sub">Nombre / Aclaración / Firma</div></div>
+        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Técnico ejecutor</div><div class="pb-firma-sub">Nombre / Aclaración / Firma</div></div>
         <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Jefe de Mantenimiento</div><div class="pb-firma-sub">Aprobación</div></div>
       </div>
     </div>
-      <div class="pb-sec">Firmas</div>
-      <div class="pb-firmas">
-        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Técnico ejecutor</div><div class="pb-firma-sub">Nombre / Aclaración</div></div>
+
     <div class="pb-footer">
       <span>CALCAR · NOFROCK SAS — Sistema de Gestión de Mantenimiento</span>
       <span id="pb-footer"></span>
@@ -2392,17 +2415,18 @@ async function saveTarea(){
   const desc=v('tar-desc').trim(); if(!desc){alert('Ingresá una descripción.');return;}
   const cod=v('tar-cod').trim()||'PM-'+String(S.tareas.length+1).padStart(3,'0');
   const freq=v('tar-freq');
-  const diasCiclo=freq==='Personalizada'?parseInt(v('tar-dias'))||7:FREQ_DIAS[freq]||7;
+  const sinFreq=freq==='Sin frecuencia';
+  const diasCiclo=sinFreq?null:(freq==='Personalizada'?parseInt(v('tar-dias'))||7:FREQ_DIAS[freq]||7);
   if(freq==='Personalizada'&&!v('tar-dias')){alert('Ingresá el número de días para la frecuencia personalizada.');return;}
-  const fechaIni=v('tar-fecha-ini')||null;
+  const fechaIni=sinFreq?null:(v('tar-fecha-ini')||null);
   const umbral=parseInt(v('tar-umbral'))||null;
   const instCod=v('tar-inst-cod').trim().toUpperCase()||null;
-  const row={codigo:cod,equipo:v('tar-equipo')||null,descripcion:desc,frecuencia:freq,dias_ciclo:diasCiclo,fecha_inicio:fechaIni,intervalo_hs:v('tar-hs')||null,tiempo_est:v('tar-tiempo')||null,tecnico:v('tar-tec')||null,checks:getChecks(),insumos:getInsumos(),umbral:umbral,inst_cod:instCod};
+  const row={codigo:cod,equipo:v('tar-equipo')||null,descripcion:desc,frecuencia:freq,dias_ciclo:diasCiclo,fecha_inicio:fechaIni,intervalo_hs:umbral,tiempo_est:v('tar-tiempo')||null,tecnico:v('tar-tec')||null,checks:getChecks(),insumos:getInsumos(),umbral:umbral,inst_cod:instCod};
   loading(true);
   const {error}=await sb.from('otp_tareas').insert(row);
   loading(false);
   if(error){dbErr(error,'guardar tarea');return;}
-  closeModal('m-tarea'); clr(['tar-cod','tar-desc','tar-hs','tar-tiempo','tar-tec','tar-dias','tar-fecha-ini']);
+  closeModal('m-tarea'); clr(['tar-cod','tar-desc','tar-umbral','tar-tiempo','tar-tec','tar-dias','tar-fecha-ini']);
   await loadTareas();
   // Si tiene fecha de inicio, ofrecer agregar sus ocurrencias al plan del año actual
   if(fechaIni && confirm(`¿Agregar las ocurrencias de "${desc}" al plan ${calAnio}?\n(No borra las ocurrencias de las otras tareas ya programadas)`)){
@@ -3150,6 +3174,7 @@ const FREQ_DIAS = {
 function onFreqChange(){
   const freq = v('tar-freq');
   g('tar-dias-wrap').style.display = freq==='Personalizada' ? '' : 'none';
+  g('tar-fecha-ini-wrap').style.display = freq==='Sin frecuencia' ? 'none' : '';
 }
 
 function onTarEquipoChange(){
@@ -3157,12 +3182,6 @@ function onTarEquipoChange(){
   const eq=S.eq.find(e=>e.nom===nom);
   const esHoro=eq&&eq.tipoIntervalo==='horometro';
   g('tar-umbral-wrap').style.display=esHoro?'':'none';
-  // Si es horómetro, frecuencia no aplica — ocultar
-  g('tar-freq').closest('.form-group').style.display=esHoro?'none':'';
-  const diasWrap=g('tar-dias-wrap');
-  if(diasWrap) diasWrap.style.display='none';
-  const fechaWrap=g('tar-fecha-ini')&&g('tar-fecha-ini').closest('.form-group');
-  if(fechaWrap) fechaWrap.style.display=esHoro?'none':'';
 }
 
 function openTareaModalConEquipo(nomEq){
@@ -3174,6 +3193,7 @@ function openTareaModalConEquipo(nomEq){
 }
 
 function getDiasCiclo(tarea){
+  if(tarea.freq==='Sin frecuencia') return null;
   if(tarea.freq==='Personalizada') return tarea.diasCiclo||7;
   return FREQ_DIAS[tarea.freq]||7;
 }
@@ -3241,7 +3261,7 @@ async function generarPlanAnual(){
 // ── CARGAR PLAN ──
 async function loadPlan(){
   const {data,error}=await sb.from('otp_plan')
-    .select('*, otp_tareas(descripcion,equipo,frecuencia)')
+    .select('*, otp_tareas(descripcion,equipo,frecuencia,intervalo_hs)')
     .gte('fecha_prog',calAnio+'-01-01')
     .lte('fecha_prog',calAnio+'-12-31')
     .order('fecha_prog');
@@ -3251,6 +3271,7 @@ async function loadPlan(){
     desc:r.otp_tareas?.descripcion||r.tarea_cod,
     equipo:r.otp_tareas?.equipo||'—',
     freq:r.otp_tareas?.frecuencia||'—',
+    hs:r.otp_tareas?.intervalo_hs||null,
     fecha:r.fecha_prog, semana:r.semana, estado:r.estado
   }));
   renderPlanLista(S.plan);
@@ -3463,7 +3484,7 @@ function openTareaModal(){
   g('m-tarea').querySelector('.form-actions .btn-primary').innerHTML='<i class="ti ti-device-floppy"></i> Guardar tarea';
   g('tar-cod').readOnly=false;
   g('tar-cod').value='';
-  clr(['tar-desc','tar-hs','tar-tiempo','tar-tec','tar-dias','tar-fecha-ini','tar-umbral']);
+  clr(['tar-desc','tar-tiempo','tar-tec','tar-dias','tar-fecha-ini','tar-umbral']);
   g('tar-freq').value='Semanal';
   onFreqChange();
   g('m-tarea').classList.add('open');
@@ -3487,10 +3508,9 @@ function openEditTareaModal(idx){
   onFreqChange();
   g('tar-dias').value  = t.diasCiclo||'';
   g('tar-fecha-ini').value = t.fechaIni||'';
-  g('tar-hs').value    = t.hs||'';
   g('tar-tiempo').value = t.tiempo||'';
   g('tar-tec').value   = t.tec||'';
-  g('tar-umbral').value = t.umbral||'';
+  g('tar-umbral').value = (t.umbral!=null?t.umbral:t.hs)||'';
   g('tar-inst-cod').value = t.instCod||'';
   g('tar-inst-sel').value = t.instCod||'';
   g('tar-inst-preview').style.display='none';
@@ -3520,9 +3540,10 @@ async function saveEditTarea(){
   const t = S.tareas[editTareaIdx];
   const desc=v('tar-desc').trim(); if(!desc){alert('Ingresá una descripción.');return;}
   const freq=v('tar-freq');
-  const diasCiclo=freq==='Personalizada'?parseInt(v('tar-dias'))||7:FREQ_DIAS[freq]||7;
+  const sinFreq=freq==='Sin frecuencia';
+  const diasCiclo=sinFreq?null:(freq==='Personalizada'?parseInt(v('tar-dias'))||7:FREQ_DIAS[freq]||7);
   if(freq==='Personalizada'&&!v('tar-dias')){alert('Ingresá el número de días para la frecuencia personalizada.');return;}
-  const fechaIni=v('tar-fecha-ini')||null;
+  const fechaIni=sinFreq?null:(v('tar-fecha-ini')||null);
   const umbral=parseInt(v('tar-umbral'))||null;
   const instCod=v('tar-inst-cod').trim().toUpperCase()||null;
   const row={
@@ -3531,7 +3552,7 @@ async function saveEditTarea(){
     frecuencia:freq,
     dias_ciclo:diasCiclo,
     fecha_inicio:fechaIni,
-    intervalo_hs:v('tar-hs')||null,
+    intervalo_hs:umbral,
     tiempo_est:v('tar-tiempo')||null,
     tecnico:v('tar-tec')||null,
     checks:getChecks(),
@@ -3620,8 +3641,8 @@ function buildPrevPDF(tarea, ejec){
     pf('Equipo',tarea.equipo)+
     pf('Código tarea',tarea.cod)+
     pf('Descripción',tarea.desc)+
-    pf('Frecuencia',tarea.freq)+
-    pf('Intervalo hs',tarea.hs?tarea.hs+' hs':'—')+
+    pf('Frecuencia', tarea.freq==='Sin frecuencia' ? '—' : tarea.freq)+
+    pf('Umbral horómetro',tarea.hs?tarea.hs+' hs':'—')+
     pf('Tiempo estimado',tarea.tiempo||'—');
 
   // Checkpoints
