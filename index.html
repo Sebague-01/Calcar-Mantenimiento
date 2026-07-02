@@ -368,7 +368,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
 <!-- LOADING OVERLAY -->
  <!-- REPORTE INTERVENCIONES PRINT -->
-<div id="rep-print-overlay" style="display:none;position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto" id="rep-print-overlay">
+<div id="rep-print-overlay" style="display:none;position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto">
   <div id="rep-print-content" style="max-width:210mm;margin:0 auto;padding:12mm 15mm;font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1a1a18"></div>
   <div style="position:fixed;top:12px;right:12px;display:flex;gap:8px" id="rep-print-controls">
     <button onclick="window.print()" class="btn-primary"><i class="ti ti-printer"></i> Imprimir</button>
@@ -408,7 +408,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="logo-mark">CA</div>
       <div><div class="app-title">CALCAR — Gestión de Mantenimiento</div><div class="app-sub">Planta Tarariras</div></div>
     </div>
-    <span class="badge b-green">v3.3</span>
+    <span class="badge b-green">v3.4</span>
     <div style="display:flex;align-items:center;gap:8px;margin-left:12px">
       <span style="font-size:12px;color:#888" id="topbar-user"></span>
       <button onclick="doLogout()" class="btn-sec" style="padding:5px 10px;font-size:12px"><i class="ti ti-logout"></i> Salir</button>
@@ -2393,11 +2393,8 @@ async function filterMov(){
   await loadMovs(q,tipo);
 }
 
-// Stock actual desde cache (para selects en tarea preventiva)
-function stockActual(cod){
-  const it=S.items.find(i=>i.cod===cod);
-  return it?it.actual:0;
-}
+// NOTA: stockActual() está definida en la sección Stock (con coerción Number).
+// La definición duplicada que había acá fue eliminada (v3.4).
 
 // ══════════════════════════════════════
 // OTP — TAREAS PREVENTIVAS
@@ -2437,6 +2434,8 @@ async function saveTarea(){
 }
 
 async function agregarTareaAlPlan(t){
+  // v3.4: guarda anti-bucle infinito (mismo caso que en generarPlanAnual)
+  if(!t.diasCiclo || t.diasCiclo < 1){alert('La tarea no tiene una frecuencia válida en días; no se puede programar en el plan.');return;}
   loading(true,'Actualizando plan...');
   // Borrar solo las ocurrencias de esta tarea en el año
   await sb.from('otp_plan').delete().eq('tarea_cod',t.cod).gte('fecha_prog',calAnio+'-01-01').lte('fecha_prog',calAnio+'-12-31');
@@ -2462,10 +2461,9 @@ async function agregarTareaAlPlan(t){
   syncCalEquipoFilter();
 }
 
-async function filterPlan(){
-  const q=g('s-plan').value.toLowerCase(), eq=g('f-plan-eq').value;
-  await loadTareas(q,eq);
-}
+// NOTA: filterPlan() está definida más abajo (filtra en cliente sobre S.tareas).
+// La versión async que recargaba desde Supabase fue eliminada (v3.4) porque
+// estaba duplicada y era código muerto: la definición posterior la pisaba.
 
 // ══════════════════════════════════════
 // OTP — EJECUCIONES
@@ -2492,10 +2490,8 @@ async function saveEjec(){
   await loadEjecucs();
 }
 
-async function filterEjec(){
-  const q=g('s-ejec').value.toLowerCase(), eq=g('f-ejec-eq').value;
-  await loadEjecucs(q,eq);
-}
+// NOTA: filterEjec() está definida más abajo (filtra en cliente sobre S.ejecucs).
+// La versión async duplicada fue eliminada (v3.4) — era código muerto.
 
 // ══════════════════════════════════════
 // ÓRDENES DE COMPRA
@@ -2534,8 +2530,23 @@ async function filterOC(){
 
 // ── NÚMEROS ──
 async function nextNum(tabla, campo, prefix){
-  const {count}=await sb.from(tabla).select('*',{count:'exact',head:true});
-  return gNum(prefix,(count||0)+1);
+  // v3.4: busca el número más alto existente con el prefijo del año y suma 1.
+  // (La versión anterior usaba count+1: si se borraba un registro, el próximo
+  // número podía duplicar uno existente.)
+  const pref=prefix+'-'+new Date().getFullYear()+'-';
+  const sel={}; sel[campo]=campo;
+  const {data,error}=await sb.from(tabla).select(campo).ilike(campo,pref+'%').order(campo,{ascending:false}).limit(1);
+  if(error){console.error('nextNum',error);}
+  const last=(data&&data.length)?(parseInt(String(data[0][campo]||'').slice(pref.length),10)||0):0;
+  return pref+String(last+1).padStart(4,'0');
+}
+
+// v3.4: correlativo para series sin año (ej: OC-M-0001). Mismo criterio max+1.
+async function nextNumSerie(tabla, campo, pref){
+  const {data,error}=await sb.from(tabla).select(campo).ilike(campo,pref+'%').order(campo,{ascending:false}).limit(1);
+  if(error){console.error('nextNumSerie',error);}
+  const last=(data&&data.length)?(parseInt(String(data[0][campo]||'').slice(pref.length),10)||0):0;
+  return pref+String(last+1).padStart(4,'0');
 }
 
 function showTab(t){
@@ -2797,6 +2808,7 @@ function printOTE(idx){
   const firmasHTML=firma('Responsable de aprobación','Nombre / Aclaración')+firma('Supervisor Mantenimiento','Nombre / Aclaración');
   const html=buildOTPdf('Orden de Trabajo Externa','ote',num,fecha,cod,infoHTML,o.desc,'',firmasHTML);
   const w=window.open('','_blank');
+  if(!w){alert('El navegador bloqueó la ventana del PDF. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   w.document.write(html);
   w.document.close();
 }
@@ -2823,6 +2835,7 @@ function printOT(idx){
     firma('Supervisor Mantenimiento','Nombre / Aclaración / Firma');
   const html=buildOTPdf('Orden de Trabajo Correctiva','otc',num,fecha,cod,infoHTML,o.desc,obsHTML,firmasHTML);
   const w=window.open('','_blank');
+  if(!w){alert('El navegador bloqueó la ventana del PDF. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   w.document.write(html);
   w.document.close();
 }
@@ -2991,10 +3004,8 @@ function onMovTipoChange(){
   else{lbl.innerHTML='Referencia <span class="form-optional">(opcional)</span>';inp.placeholder='Referencia libre';}
 }
 
-function openMovForItem(cod){
-  openMovModal();
-  setTimeout(()=>{g('mov-item').value=cod;},50);
-}
+// NOTA: openMovForItem() está definida más abajo. La copia idéntica que
+// había acá fue eliminada (v3.4).
 
 // Render catálogo — usa actual del cache (calculado por la vista stock_actual)
 function renderCat(arr){
@@ -3300,6 +3311,10 @@ async function generarPlanAnual(){
   for(const t of S.tareas){
     if(!t.fechaIni) continue;
     const dias = getDiasCiclo(t);
+    // v3.4: guarda anti-bucle infinito. Si una tarea quedó con fecha de inicio
+    // pero sin frecuencia válida (ej: editada directo en la base), dias sería
+    // null/0 y el while de abajo nunca avanzaría, congelando el navegador.
+    if(!dias || dias < 1) continue;
     let fecha = new Date(t.fechaIni);
     // Avanzar hasta que esté dentro del año si la fecha de inicio es anterior
     while(fecha < ini){
@@ -3648,11 +3663,19 @@ async function saveEditTarea(){
 
 // Abrir modal ejecución desde una tarea
 let ejecTareaIdx=null;
-function openEjecModal(idx){
+async function openEjecModal(idx){
   ejecTareaIdx=idx;
   const t=S.tareas[idx];
+  // v3.4: resetear el botón a modo "nueva ejecución". Antes, si se editaba una
+  // ejecución (editEjec) y se cerraba el modal sin guardar, el botón quedaba
+  // como "Guardar cambios" apuntando al registro anterior: al ejecutar una
+  // tarea desde el plan se ACTUALIZABA esa ejecución vieja en vez de insertar.
+  const btnEjec=g('m-ejec').querySelector('.btn-primary');
+  btnEjec.innerHTML='<i class="ti ti-device-floppy"></i> Registrar ejecución';
+  btnEjec.onclick=saveEjec;
   g('mejec-title').textContent='Ejecutar: '+t.desc;
-  g('ejec-num').value=gNum('OTP',S.ejecucs.length+1);
+  // v3.4: número desde la base (max+1); antes usaba el largo del cache.
+  g('ejec-num').value=await nextNum('otp_ejecuciones','numero','OTP');
   g('ejec-fecha').value=tod();
   g('ejec-tec').value=t.tec||'';
   g('ejec-horas-eq').value='';
@@ -3848,6 +3871,7 @@ body { font-family:Arial,Helvetica,sans-serif; font-size:11px; color:#1a1a18; ma
 function printPrevBlank(idx){
   const html=buildPrevPDF(S.tareas[idx], null);
   const w=window.open('','_blank');
+  if(!w){alert('El navegador bloqueó la ventana del PDF. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   w.document.write(html);
   w.document.close();
 }
@@ -3858,6 +3882,7 @@ function printPrevEjec(idx){
   const tarea=S.tareas.find(t=>t.cod===ejec.tarea)||{equipo:ejec.equipo,cod:ejec.tarea,desc:ejec.desc,freq:ejec.freq||'—',hs:'',tiempo:'',tec:'',checks:ejec.checks||[],insumos:ejec.insumosList||[]};
   const html=buildPrevPDF(tarea, ejec);
   const w=window.open('','_blank');
+  if(!w){alert('El navegador bloqueó la ventana del PDF. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   w.document.write(html);
   w.document.close();
 }
@@ -4005,7 +4030,9 @@ async function openOCModal(){
     o.value=p.emp; o.textContent=p.emp; o.dataset.rut=p.rut||''; sel.appendChild(o);
   });
   // Limpiar campos
-  g('oc-num').value='OC-M-'+String(S.oc.length+1).padStart(4,'0');
+  // v3.4: el número sale de la base (max+1). Antes usaba S.oc.length+1 y si la
+  // lista estaba filtrada o se había borrado una OC, generaba números repetidos.
+  g('oc-num').value=await nextNumSerie('ordenes_compra','numero','OC-M-');
   g('oc-fecha').value=tod();
   g('oc-rut').value='';
   clr(['oc-ot','oc-pago','oc-entrega','oc-lugar','oc-obs']);
@@ -4203,6 +4230,7 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #1a1a1
 </body></html>`;
 
   const w=window.open('','_blank');
+  if(!w){alert('El navegador bloqueó la ventana del PDF. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   w.document.write(html);
   w.document.close();
 }
@@ -5199,6 +5227,7 @@ function imprimirReporte() {
 </html>`;
 
   const ventana = window.open('', '_blank', 'width=900,height=700');
+  if(!ventana){alert('El navegador bloqueó la ventana del reporte. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   ventana.document.write(html);
   ventana.document.close();
 }
@@ -5407,6 +5436,7 @@ function imprimirPlanPreventivo(){
 </html>`;
 
   const ventana = window.open('','_blank','width=900,height=700');
+  if(!ventana){alert('El navegador bloqueó la ventana del reporte. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   ventana.document.write(html);
   ventana.document.close();
 }
