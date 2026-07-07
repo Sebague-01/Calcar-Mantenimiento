@@ -753,6 +753,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
             <option value="Sin">Sin stock</option>
           </select>
         </div>
+        <button class="btn-sec" onclick="openStockMasivoModal()"><i class="ti ti-file-import"></i> Carga masiva</button>
         <button class="btn-primary" onclick="openModal('m-item')"><i class="ti ti-plus"></i> Nuevo producto</button>
       </div>
       <div class="table-wrap">
@@ -1312,6 +1313,72 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-mov')">Cancelar</button>
       <button class="btn-primary" onclick="saveMov()"><i class="ti ti-device-floppy"></i> Registrar movimiento</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARGA MASIVA DE STOCK -->
+<div class="modal-overlay" id="m-stock-masivo">
+  <div class="modal-box" style="width:720px">
+    <div class="modal-header"><div class="modal-title">Carga masiva de stock — recepción de insumos</div><button class="modal-close" onclick="closeModal('m-stock-masivo')"><i class="ti ti-x"></i></button></div>
+    <div class="form-grid">
+      <div class="form-section">Datos de la recepción</div>
+      <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="sm-fecha"></div>
+      <div class="form-group"><label class="form-label">Tipo de movimiento</label>
+        <select class="form-input" id="sm-tipo">
+          <option>Entrada — Compra</option>
+          <option>Entrada — Devolución</option>
+          <option>Stock inicial</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">N° de OC <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-oc" placeholder="OC-2026-0045"></div>
+      <div class="form-group"><label class="form-label">Proveedor <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-prov" placeholder="Nombre del proveedor"></div>
+      <div class="form-group"><label class="form-label">N° Remito <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-remito" placeholder="REM-12345"></div>
+      <div class="form-group"><label class="form-label">N° Factura <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-factura" placeholder="FAC-A-7890"></div>
+      <div class="form-group"><label class="form-label">Responsable</label><input type="text" class="form-input" id="sm-resp" placeholder="Nombre"></div>
+      <div class="form-group"><label class="form-label">Ubicación física <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-ubicacion" placeholder="Estante A2"></div>
+      <div class="form-group"><label class="form-label">Lote fabricante <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-lote" placeholder="99837"></div>
+      <div class="form-group"><label class="form-label">Fecha fabricación <span class="form-optional">(opcional)</span></label><input type="date" class="form-input" id="sm-fecha-fab"></div>
+      <div class="form-group"><label class="form-label">Fecha vencimiento <span class="form-optional">(opcional)</span></label><input type="date" class="form-input" id="sm-fecha-venc"></div>
+      <div class="form-group"><label class="form-label">Estado ingreso</label>
+        <select class="form-input" id="sm-estado-ing">
+          <option>Recibido</option>
+          <option>Inspeccionado</option>
+          <option>Aprobado</option>
+          <option>Rechazado</option>
+        </select>
+      </div>
+      <div style="font-size:11px;color:#aaa;grid-column:1/-1;margin-top:-4px">Lote / fecha fabricación / fecha vencimiento se aplican a todos los ítems de esta recepción. Si algún ítem tiene datos distintos, ajustalo después desde la pestaña Movimientos.</div>
+
+      <div class="form-section">Ítems recibidos</div>
+      <div class="form-group full">
+        <div style="display:grid;grid-template-columns:100px 1fr 100px 80px 80px 90px 26px;gap:6px;margin-bottom:6px;font-size:11px;font-weight:600;color:#888;padding:0 2px">
+          <span>Código interno</span><span>Descripción</span><span style="text-align:center">Categoría</span><span style="text-align:center">Unidad</span><span style="text-align:right">Cantidad</span><span style="text-align:right">P. unitario</span><span></span>
+        </div>
+        <div id="sm-items-container"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-start">
+          <button type="button" class="btn-sec" style="font-size:12px" onclick="addStockMasivoItem()"><i class="ti ti-plus"></i> Agregar ítem</button>
+          <button type="button" class="btn-sec" style="font-size:12px" onclick="openModal('m-sm-paste')"><i class="ti ti-clipboard-text"></i> Pegar desde planilla</button>
+        </div>
+        <div style="font-size:11px;color:#aaa;margin-top:8px">Si el código ya existe en el catálogo, esta carga suma la cantidad al stock actual (la categoría/unidad del producto existente no se modifica). Si el código no existe, se crea el producto automáticamente con los datos de la fila.</div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-sec" onclick="closeModal('m-stock-masivo')">Cancelar</button>
+      <button class="btn-primary" onclick="saveStockMasivo()"><i class="ti ti-device-floppy"></i> Registrar recepción</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal pegado masivo Stock -->
+<div class="modal-overlay" id="m-sm-paste">
+  <div class="modal-box narrow">
+    <div class="modal-header"><div class="modal-title">Pegar ítems desde planilla</div><button class="modal-close" onclick="closeModal('m-sm-paste')"><i class="ti ti-x"></i></button></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px">Copiá un rango de Excel y pegalo acá. Columnas esperadas: <b>Código | Descripción | Categoría | Unidad | Cantidad | P.unitario</b><br>Categoría acepta el código (LUB/QUI/REP/HER/CON) o el nombre completo. Si no incluís categoría/unidad/precio, pegá solo <b>Código | Descripción | Cantidad</b> (3 columnas).</div>
+    <textarea id="sm-paste-txt" class="form-input" rows="8" style="font-size:11px;font-family:monospace;width:100%" placeholder="Pegá acá..."></textarea>
+    <div class="form-actions">
+      <button class="btn-sec" onclick="closeModal('m-sm-paste');g('sm-paste-txt').value=''">Cancelar</button>
+      <button class="btn-primary" onclick="importStockMasivoPaste()"><i class="ti ti-table-import"></i> Importar filas</button>
     </div>
   </div>
 </div>
@@ -2395,6 +2462,186 @@ async function filterMov(){
 
 // NOTA: stockActual() está definida en la sección Stock (con coerción Number).
 // La definición duplicada que había acá fue eliminada (v3.4).
+
+// ══════════════════════════════════════
+// STOCK — Carga masiva (recepción con varios ítems)
+// Si el código ya existe en catálogo -> suma stock (movimiento de entrada).
+// Si el código no existe -> crea el producto y registra el movimiento inicial.
+// ══════════════════════════════════════
+const CAT_OPTS_MASIVO = [
+  ['LUB','Lubricantes'],['QUI','Químicos'],['REP','Repuestos'],['HER','Herramientas'],['CON','Consumibles']
+];
+const UNIDAD_OPTS_MASIVO = ['u','Bidón','Balde','Tambor','L','kg','m','Caja','Juego'];
+
+function catOptsHtmlMasivo(sel){
+  return CAT_OPTS_MASIVO.map(([val,lbl])=>'<option value="'+val+'"'+(val===sel?' selected':'')+'>'+lbl+'</option>').join('');
+}
+function unidadOptsHtmlMasivo(sel){
+  return UNIDAD_OPTS_MASIVO.map(u=>'<option'+(u===sel?' selected':'')+'>'+u+'</option>').join('');
+}
+function normalizeCatMasivo(txt){
+  const key=(txt||'').trim().toUpperCase().replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙ]/g,'U');
+  const direct=CAT_OPTS_MASIVO.find(([val])=>val===key);
+  if(direct) return direct[0];
+  const byName=CAT_OPTS_MASIVO.find(([,lbl])=>lbl.toUpperCase().replace(/[ÁÀ]/g,'A').replace(/[ÍÌ]/g,'I')===key || lbl.toUpperCase().startsWith(key.slice(0,3)));
+  return byName?byName[0]:'REP';
+}
+function normalizeUnidadMasivo(txt){
+  const key=(txt||'').trim().toLowerCase();
+  const match=UNIDAD_OPTS_MASIVO.find(u=>u.toLowerCase()===key);
+  return match||'u';
+}
+
+// Agregar fila de ítem en el modal de carga masiva
+function addStockMasivoItem(cod='',desc='',cat='REP',unidad='u',cant='',pu=''){
+  const div=document.createElement('div');
+  div.style.cssText='display:grid;grid-template-columns:100px 1fr 100px 80px 80px 90px 26px;gap:6px;margin-bottom:6px;align-items:center';
+  div.innerHTML=
+    '<input type="text" class="form-input mono" placeholder="Código" value="'+cod+'" style="font-size:12px;text-transform:uppercase">'
+    +'<input type="text" class="form-input" placeholder="Descripción..." value="'+desc+'" style="font-size:12px">'
+    +'<select class="form-input" style="font-size:12px">'+catOptsHtmlMasivo(cat)+'</select>'
+    +'<select class="form-input" style="font-size:12px">'+unidadOptsHtmlMasivo(unidad)+'</select>'
+    +'<input type="number" class="form-input" placeholder="Cant." value="'+cant+'" min="0.001" step="any" style="font-size:12px;text-align:right">'
+    +'<input type="number" class="form-input" placeholder="P.unit." value="'+pu+'" step="0.01" style="font-size:12px;text-align:right">'
+    +'<button type="button" onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:18px;line-height:1">×</button>';
+  g('sm-items-container').appendChild(div);
+}
+
+function getStockMasivoItems(){
+  const rows=g('sm-items-container').children;
+  const items=[];
+  for(const r of rows){
+    const ins=r.querySelectorAll('input');
+    const sels=r.querySelectorAll('select');
+    const cod=ins[0]?ins[0].value.trim().toUpperCase():'';
+    if(cod){
+      items.push({
+        cod,
+        desc:ins[1]?ins[1].value.trim():'',
+        cat:sels[0]?sels[0].value:'REP',
+        unidad:sels[1]?sels[1].value:'u',
+        cant:parseFloat(ins[2]?ins[2].value:0)||0,
+        pu:parseFloat(ins[3]?ins[3].value:0)||0
+      });
+    }
+  }
+  return items;
+}
+
+function importStockMasivoPaste(){
+  const txt=g('sm-paste-txt').value.trim();
+  if(!txt) return;
+  const toNum=s=>parseFloat((s||'').replace(',','.'))||0;
+  const lines=txt.split('\n').filter(l=>l.trim());
+  let imported=0;
+  lines.forEach(line=>{
+    const cols=line.split('\t').map(c=>c.trim());
+    let cod='',desc='',cat='',unidad='',cant='',pu='';
+    if(cols.length>=6){
+      [cod,desc,cat,unidad,cant,pu]=cols;
+    } else if(cols.length===5){
+      [cod,desc,cat,unidad,cant]=cols;
+    } else if(cols.length===3){
+      [cod,desc,cant]=cols;
+    } else {
+      cod=cols[0]||''; desc=cols[1]||''; cant=cols[2]||''; unidad=cols[3]||''; cat=cols[4]||'';
+    }
+    if(!cod) return;
+    // Saltar fila de encabezado
+    if(cod.toLowerCase()==='código'||cod.toLowerCase()==='codigo'||cod.toLowerCase()==='cód.') return;
+    addStockMasivoItem(cod.toUpperCase(), desc, normalizeCatMasivo(cat), normalizeUnidadMasivo(unidad), toNum(cant), toNum(pu));
+    imported++;
+  });
+  closeModal('m-sm-paste');
+  g('sm-paste-txt').value='';
+  if(imported) alert(imported+' ítem'+(imported>1?'s':'')+' importado'+(imported>1?'s':'')+' correctamente.');
+}
+
+function openStockMasivoModal(){
+  g('sm-fecha').value=tod();
+  g('sm-tipo').value='Entrada — Compra';
+  clr(['sm-oc','sm-prov','sm-remito','sm-factura','sm-resp','sm-ubicacion','sm-lote','sm-fecha-fab','sm-fecha-venc']);
+  g('sm-estado-ing').value='Recibido';
+  g('sm-items-container').innerHTML='';
+  addStockMasivoItem(); addStockMasivoItem(); addStockMasivoItem();
+  g('m-stock-masivo').classList.add('open');
+}
+
+async function saveStockMasivo(){
+  const items=getStockMasivoItems();
+  if(!items.length){alert('Agregá al menos un ítem con código y cantidad.');return;}
+  for(const it of items){
+    if(!it.cod){alert('Todos los ítems necesitan un código interno.');return;}
+    if(!it.cant||it.cant<=0){alert('Revisá la cantidad del ítem "'+it.cod+'": debe ser mayor a 0.');return;}
+  }
+  const fecha=v('sm-fecha')||tod();
+  const tipo=v('sm-tipo');
+  const ocRef=v('sm-oc')||null;
+  const provRef=v('sm-prov')||null;
+  const remito=v('sm-remito')||null;
+  const factura=v('sm-factura')||null;
+  const resp=v('sm-resp')||null;
+  const ubic=v('sm-ubicacion')||null;
+  const lote=v('sm-lote')||null;
+  const fechaFab=v('sm-fecha-fab')||null;
+  const fechaVenc=v('sm-fecha-venc')||null;
+  const estadoIng=v('sm-estado-ing');
+
+  let creados=0, actualizados=0;
+  loading(true,'Registrando recepción...');
+  for(const it of items){
+    let itemExistente=S.items.find(x=>(x.cod||'').toUpperCase()===it.cod);
+    if(!itemExistente){
+      const rowItem={
+        codigo:it.cod,
+        descripcion:it.desc||it.cod,
+        nombre_comercial:it.desc||it.cod,
+        categoria:it.cat||'REP',
+        unidad:it.unidad||'u',
+        stock_min:0,
+        punto_reorden:0,
+        estado:'Activo',
+        ubicacion_almacen:ubic||null,
+        precio_referencia:it.pu||null
+      };
+      const {data:nuevo,error:errIns}=await sb.from('stock_items').insert(rowItem).select();
+      if(errIns){loading(false);dbErr(errIns,'crear producto '+it.cod);return;}
+      creados++;
+      itemExistente={id:nuevo&&nuevo[0]?nuevo[0].id:null,cod:it.cod,cat:it.cat,desc:it.desc||it.cod,unidad:it.unidad||'u',actual:0};
+      S.items.push(itemExistente);
+    } else {
+      actualizados++;
+    }
+    const rowMov={
+      fecha,
+      item_cod:it.cod,
+      descripcion:itemExistente.desc||it.desc||it.cod,
+      unidad:itemExistente.unidad||it.unidad||'u',
+      tipo,
+      cantidad:it.cant,
+      responsable:resp,
+      referencia:ocRef,
+      nota:null,
+      oc_referencia:ocRef,
+      proveedor:provRef,
+      lote_fabricante:lote,
+      fecha_fabricacion:fechaFab,
+      fecha_vencimiento:fechaVenc,
+      ubicacion_fisica:ubic,
+      remito,
+      factura,
+      precio_unitario:it.pu||null,
+      estado_ingreso:estadoIng
+    };
+    const {error:errMov}=await sb.from('stock_movimientos').insert(rowMov);
+    if(errMov){loading(false);dbErr(errMov,'registrar movimiento de '+it.cod);return;}
+  }
+  loading(false);
+  closeModal('m-stock-masivo');
+  clr(['sm-oc','sm-prov','sm-remito','sm-factura','sm-resp','sm-ubicacion','sm-lote','sm-fecha-fab','sm-fecha-venc']);
+  await Promise.all([loadItems(),loadMovs()]);
+  alert('Recepción registrada: '+items.length+' ítem'+(items.length>1?'s':'')+' — '+creados+' producto'+(creados!==1?'s':'')+' nuevo'+(creados!==1?'s':'')+', '+actualizados+' actualizado'+(actualizados!==1?'s':'')+'.');
+}
 
 // ══════════════════════════════════════
 // OTP — TAREAS PREVENTIVAS
