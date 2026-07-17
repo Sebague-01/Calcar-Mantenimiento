@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CALCAR - Reclamos Internos</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f2f4f3;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+  .card {
+    background: #fff;
+    max-width: 520px;
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .header {
+    background: #1b4332;
+    color: #fff;
+    padding: 20px 24px;
+  }
+  .header h1 { margin: 0; font-size: 20px; }
+  .header p { margin: 4px 0 0; font-size: 13px; opacity: 0.85; }
+  form { padding: 24px; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin: 16px 0 6px;
+  }
+  label:first-of-type { margin-top: 0; }
+  select, input, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  .prioridad-group {
+    display: flex;
+    gap: 8px;
+  }
+  .prioridad-group label {
+    flex: 1;
+    margin: 0;
+    text-align: center;
+    padding: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 13px;
+    color: #555;
+  }
+  .prioridad-group input {
+    position: absolute;
+    width: 1px; height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .prioridad-group label { position: relative; }
+  .prioridad-group input:checked + span { font-weight: 700; }
+  .prioridad-group label:has(input:checked) { border-width: 2px; }
+  .prioridad-group label[data-p="Baja"]:has(input:checked) { border-color: #2d6a4f; background:#eaf5ef; color:#2d6a4f; }
+  .prioridad-group label[data-p="Media"]:has(input:checked) { border-color: #b08900; background:#fdf6e3; color:#8a6d00; }
+  .prioridad-group label[data-p="Alta"]:has(input:checked) { border-color: #c0392b; background:#fdeceb; color:#c0392b; }
+  button {
+    width: 100%;
+    margin-top: 22px;
+    padding: 13px;
+    background: #1b4332;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .msg {
+    display: none;
+    margin: 24px;
+    padding: 18px;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .msg.ok { background: #eaf5ef; color: #1b4332; }
+  .msg.error { background: #fdeceb; color: #c0392b; }
+  .msg h2 { margin: 0 0 6px; font-size: 22px; }
+  .msg p { margin: 0; font-size: 14px; }
+  .nuevo-btn {
+    margin-top: 16px;
+    background: transparent;
+    color: #1b4332;
+    border: 1px solid #1b4332;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Reclamos Internos - Mantenimiento</h1>
+    <p>Complete el formulario para reportar un problema. El equipo de mantenimiento lo revisará a la brevedad.</p>
+  </div>
+
+  <form id="formReclamo">
+    <label for="sector">Sector *</label>
+    <select id="sector" required>
+      <option value="" disabled selected>Seleccione su sector</option>
+      <option>Producción</option>
+      <option>Envasado</option>
+      <option>Sala de Máquinas</option>
+      <option>Calidad</option>
+      <option>Depósito / Logística</option>
+      <option>Laboratorio</option>
+      <option>Administración</option>
+      <option>Otro</option>
+    </select>
+
+    <label for="equipo">Equipo / Ubicación</label>
+    <input type="text" id="equipo" placeholder="Ej: Envasadora Tetra Pak, Cámara 2, etc.">
+
+    <label for="descripcion">Descripción del reclamo *</label>
+    <textarea id="descripcion" required placeholder="Describa el problema con el mayor detalle posible"></textarea>
+
+    <label>Prioridad *</label>
+    <div class="prioridad-group">
+      <label data-p="Baja"><input type="radio" name="prioridad" value="Baja" required><span>Baja</span></label>
+      <label data-p="Media"><input type="radio" name="prioridad" value="Media"><span>Media</span></label>
+      <label data-p="Alta"><input type="radio" name="prioridad" value="Alta"><span>Alta</span></label>
+    </div>
+
+    <label for="reportante">Nombre de quien reporta *</label>
+    <input type="text" id="reportante" required placeholder="Nombre y apellido">
+
+    <button type="submit" id="btnSubmit">Enviar reclamo</button>
+  </form>
+
+  <div class="msg ok" id="msgOk">
+    <h2 id="numeroGenerado"></h2>
+    <p>Su reclamo fue registrado correctamente. Mantenimiento lo revisará a la brevedad.</p>
+    <button id="btnImprimir">Imprimir / Guardar comprobante</button>
+    <button class="nuevo-btn" onclick="location.reload()">Cargar otro reclamo</button>
+  </div>
+
+  <div class="msg error" id="msgError">
+    <h2>Error</h2>
+    <p id="errorText">No se pudo registrar el reclamo. Intente nuevamente.</p>
+    <button class="nuevo-btn" onclick="document.getElementById('msgError').style.display='none'; document.getElementById('formReclamo').style.display='block';">Volver a intentar</button>
+  </div>
+</div>
+
+<script>
+  // Mismas credenciales que el sistema principal (index.html)
+  const SUPABASE_URL = 'https://ksywioicxkusnkcvsper.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_yEWkPu9QXrcMEQD1HqEXqg_XVJ3QTfx';
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const form = document.getElementById('formReclamo');
+  const btn = document.getElementById('btnSubmit');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    const sector = document.getElementById('sector').value;
+    const equipo_ubicacion = document.getElementById('equipo').value;
+    const descripcion = document.getElementById('descripcion').value;
+    const prioridad = document.querySelector('input[name="prioridad"]:checked')?.value;
+    const reportado_por = document.getElementById('reportante').value;
+
+    const { data, error } = await sb
+      .from('reclamos')
+      .insert([{ sector, equipo_ubicacion, descripcion, prioridad, reportado_por }])
+      .select();
+
+    if (error) {
+      document.getElementById('errorText').textContent = error.message;
+      document.getElementById('msgError').style.display = 'block';
+      form.style.display = 'none';
+    } else {
+      const reclamo = data[0];
+      document.getElementById('numeroGenerado').textContent = reclamo.numero;
+      document.getElementById('msgOk').style.display = 'block';
+      form.style.display = 'none';
+      document.getElementById('btnImprimir').onclick = () => imprimirComprobante(reclamo);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Enviar reclamo';
+  });
+
+  function imprimirComprobante(reclamo) {
+    const fecha = new Date(reclamo.created_at).toLocaleString('es-UY', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Comprobante ${reclamo.numero}</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: Arial, sans-serif; color: #222; margin: 0; padding: 0; }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #1b4332;
+            padding-bottom: 14px;
+            margin-bottom: 24px;
+          }
+          .header h1 { color: #1b4332; margin: 0 0 4px; font-size: 22px; }
+          .header p { margin: 0; font-size: 12px; color: #555; }
+          .numero-box {
+            text-align: right;
+            border: 2px solid #1b4332;
+            border-radius: 6px;
+            padding: 8px 14px;
+          }
+          .numero-box .label { font-size: 11px; color: #555; }
+          .numero-box .valor { font-size: 20px; font-weight: 700; color: #1b4332; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          td { padding: 10px 0; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+          td.label { width: 180px; font-weight: 600; color: #444; font-size: 13px; }
+          td.valor { font-size: 14px; }
+          .prioridad {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 12px;
+          }
+          .footer { margin-top: 40px; font-size: 11px; color: #777; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1>CALCAR</h1>
+            <p>Comprobante de Reclamo Interno</p>
+          </div>
+          <div class="numero-box">
+            <div class="label">N° de Reclamo</div>
+            <div class="valor">${reclamo.numero}</div>
+          </div>
+        </div>
+
+        <table>
+          <tr><td class="label">Fecha y hora</td><td class="valor">${fecha}</td></tr>
+          <tr><td class="label">Sector</td><td class="valor">${reclamo.sector}</td></tr>
+          <tr><td class="label">Equipo / Ubicación</td><td class="valor">${reclamo.equipo_ubicacion || '-'}</td></tr>
+          <tr><td class="label">Prioridad</td><td class="valor"><span class="prioridad">${reclamo.prioridad}</span></td></tr>
+          <tr><td class="label">Reportado por</td><td class="valor">${reclamo.reportado_por}</td></tr>
+          <tr><td class="label">Descripción</td><td class="valor">${reclamo.descripcion}</td></tr>
+          <tr><td class="label">Estado</td><td class="valor">${reclamo.estado}</td></tr>
+        </table>
+
+        <div class="footer">
+          Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay<br>
+          Conserve este comprobante para hacer seguimiento del reclamo.
+        </div>
+      </body>
+      </html>
+    `;
+
+    const ventana = window.open('', '_blank');
+    ventana.document.write(html);
+    ventana.document.close();
+  }
+</script>
+
+</body>
+</html>
