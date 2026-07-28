@@ -106,6 +106,49 @@
     color: #1b4332;
     border: 1px solid #1b4332;
   }
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin: 0;
+  }
+  .tab-btn.active { color: #1b4332; border-bottom-color: #1b4332; }
+  .rec-info {
+    background: #f7f8f7;
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-size: 13px;
+  }
+  .rec-info div { margin-bottom: 8px; }
+  .rec-info b { color: #333; }
+  .conf-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .conf-actions button {
+    margin-top: 0;
+    font-size: 13px;
+  }
+  .btn-conforme { background: #1b4332; }
+  .btn-noconforme { background: #A32D2D; }
+  .estado-pill {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+  }
 </style>
 </head>
 <body>
@@ -113,7 +156,19 @@
 <div class="card">
   <div class="header">
     <h1>Reclamos Internos - Mantenimiento</h1>
-    <p>Complete el formulario para reportar un problema. El equipo de mantenimiento lo revisará a la brevedad.</p>
+    <p id="headerSub">Complete el formulario para reportar un problema. El equipo de mantenimiento lo revisará a la brevedad.</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabCargar" onclick="mostrarTab('cargar')">Cargar reclamo</button>
+    <button class="tab-btn" id="tabConsultar" onclick="mostrarTab('consultar')">Consultar mi reclamo</button>
+  </div>
+
+  <div id="seccionConsulta" style="display:none; padding:24px;">
+    <label for="numeroConsulta">Número de reclamo</label>
+    <input type="text" id="numeroConsulta" placeholder="Ej: REC-0001" style="text-transform:uppercase">
+    <button type="button" id="btnBuscar" style="margin-top:14px">Buscar</button>
+    <div id="resultadoConsulta" style="margin-top:20px"></div>
   </div>
 
   <form id="formReclamo">
@@ -204,6 +259,132 @@
     btn.disabled = false;
     btn.textContent = 'Enviar reclamo';
   });
+
+  // ── Pestañas ──
+  function mostrarTab(tab){
+    document.getElementById('tabCargar').classList.toggle('active', tab==='cargar');
+    document.getElementById('tabConsultar').classList.toggle('active', tab==='consultar');
+    form.style.display = tab==='cargar' ? 'block' : 'none';
+    document.getElementById('msgOk').style.display = 'none';
+    document.getElementById('msgError').style.display = 'none';
+    document.getElementById('seccionConsulta').style.display = tab==='consultar' ? 'block' : 'none';
+    document.getElementById('headerSub').textContent = tab==='cargar'
+      ? 'Complete el formulario para reportar un problema. El equipo de mantenimiento lo revisará a la brevedad.'
+      : 'Ingrese su número de reclamo para ver el estado o confirmar la solución.';
+  }
+
+  // ── Consulta por número ──
+  document.getElementById('btnBuscar').addEventListener('click', () => {
+    const numero = document.getElementById('numeroConsulta').value.trim().toUpperCase();
+    if (numero) buscarReclamo(numero);
+  });
+  document.getElementById('numeroConsulta').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('btnBuscar').click();
+  });
+
+  async function buscarReclamo(numero){
+    const cont = document.getElementById('resultadoConsulta');
+    cont.innerHTML = '<p style="color:#888;font-size:13px">Buscando...</p>';
+
+    const { data, error } = await sb.from('reclamos').select('*').eq('numero', numero).maybeSingle();
+
+    if (error || !data) {
+      cont.innerHTML = '<p style="color:#c0392b;font-size:13px">No se encontró ningún reclamo con ese número.</p>';
+      return;
+    }
+
+    renderResultado(data);
+  }
+
+  function renderResultado(r){
+    const cont = document.getElementById('resultadoConsulta');
+    const colores = {
+      'Pendiente': '#fdf6e3;color:#8a6d00', 'Tomado': '#e6f1fb;color:#185FA5',
+      'Convertido': '#f0fbf6;color:#0a5c3e', 'Pendiente de Conformidad': '#fdf6e3;color:#8a6d00',
+      'Cerrado': '#f0fbf6;color:#0a5c3e', 'Rechazado': '#fdeceb;color:#c0392b'
+    };
+    const estiloEstado = colores[r.estado] || '#f4f4f2;color:#555';
+
+    let html = `
+      <div class="rec-info">
+        <div><b>N° de reclamo:</b> ${r.numero}</div>
+        <div><b>Sector:</b> ${r.sector}</div>
+        <div><b>Descripción:</b> ${r.descripcion}</div>
+        <div><b>Estado actual:</b> <span class="estado-pill" style="background:${estiloEstado}">${r.estado}</span></div>
+      </div>
+    `;
+
+    if (r.estado === 'Pendiente de Conformidad') {
+      html += `
+        <p style="font-size:13px;margin-top:16px">La intervención fue completada por Mantenimiento. ¿Quedó conforme con la solución?</p>
+        <div class="conf-actions">
+          <button class="btn-conforme" id="btnConforme">Sí, estoy conforme</button>
+          <button class="btn-noconforme" id="btnNoConforme">No estoy conforme</button>
+        </div>
+        <div id="motivoBox" style="display:none;margin-top:12px">
+          <label for="motivoNoConforme">Cuéntenos qué faltó o qué pasó *</label>
+          <textarea id="motivoNoConforme" required></textarea>
+          <button id="btnEnviarMotivo" style="margin-top:10px">Enviar y reabrir el reclamo</button>
+        </div>
+      `;
+      cont.innerHTML = html;
+
+      document.getElementById('btnConforme').onclick = () => confirmarConforme(r);
+      document.getElementById('btnNoConforme').onclick = () => {
+        document.getElementById('motivoBox').style.display = 'block';
+      };
+      document.getElementById('btnEnviarMotivo').onclick = () => {
+        const motivo = document.getElementById('motivoNoConforme').value.trim();
+        if (!motivo) { alert('Por favor contanos brevemente qué faltó.'); return; }
+        confirmarNoConforme(r, motivo);
+      };
+    } else {
+      cont.innerHTML = html;
+    }
+  }
+
+  async function confirmarConforme(r){
+    const cont = document.getElementById('resultadoConsulta');
+    cont.innerHTML = '<p style="color:#888;font-size:13px">Guardando...</p>';
+    const { error } = await sb.from('reclamos').update({
+      estado: 'Cerrado', conformidad: 'Conforme', fecha_cierre: new Date().toISOString()
+    }).eq('id', r.id);
+    if (error) {
+      cont.innerHTML = '<p style="color:#c0392b;font-size:13px">No se pudo guardar la confirmación. Intente nuevamente.</p>';
+      return;
+    }
+    cont.innerHTML = '<div class="rec-info" style="background:#eaf5ef"><b>¡Gracias!</b><br>El reclamo quedó cerrado como conforme.</div>';
+  }
+
+  async function confirmarNoConforme(r, motivo){
+    const cont = document.getElementById('resultadoConsulta');
+    cont.innerHTML = '<p style="color:#888;font-size:13px">Guardando...</p>';
+
+    if (r.otc_id) {
+      await sb.from('otc').update({ estado: 'En proceso' }).eq('id', r.otc_id);
+    }
+    const { error } = await sb.from('reclamos').update({
+      estado: 'Convertido', conformidad: 'No conforme', motivo_no_conforme: motivo,
+      fecha_pendiente_conformidad: null, veces_reabierto: (r.veces_reabierto || 0) + 1
+    }).eq('id', r.id);
+
+    if (error) {
+      cont.innerHTML = '<p style="color:#c0392b;font-size:13px">No se pudo guardar. Intente nuevamente.</p>';
+      return;
+    }
+    cont.innerHTML = '<div class="rec-info" style="background:#fdeceb"><b>Reclamo reabierto.</b><br>Mantenimiento fue notificado y va a retomar la intervención.</div>';
+  }
+
+  // Si viene un link con ?consultar=REC-000x, abrir directamente esa consulta
+  (function(){
+    const params = new URLSearchParams(window.location.search);
+    const num = params.get('consultar');
+    if (num) {
+      mostrarTab('consultar');
+      document.getElementById('numeroConsulta').value = num.toUpperCase();
+      buscarReclamo(num.toUpperCase());
+    }
+  })();
 
   function imprimirComprobante(reclamo) {
     const fecha = new Date(reclamo.created_at).toLocaleString('es-UY', {

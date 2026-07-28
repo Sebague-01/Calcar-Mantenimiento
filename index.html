@@ -455,7 +455,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Buscar reclamo..." id="s-reclamo" oninput="filterReclamos()"></div>
         <select id="f-reclamo-est" onchange="filterReclamos()">
           <option value="">Todos los estados</option>
-          <option>Pendiente</option><option>Tomado</option><option>Convertido</option><option>Rechazado</option>
+          <option>Pendiente</option><option>Tomado</option><option>Convertido</option>
+          <option>Pendiente de Conformidad</option><option>Cerrado</option><option>Rechazado</option>
         </select>
       </div>
       <button class="btn-sec" onclick="loadReclamos()"><i class="ti ti-refresh"></i> Actualizar</button>
@@ -2321,6 +2322,19 @@ async function saveOT(){
   await loadOTC(); updateDash();
 }
 
+function avisarConformidad(numReclamo, numOtc){
+  const link='https://sebague-01.github.io/Calcar-Mantenimiento/reclamos.html?consultar='+numReclamo;
+  const asunto=encodeURIComponent('Reclamo '+numReclamo+' - intervención completada');
+  const cuerpo=encodeURIComponent(
+    'Hola,\n\nEl reclamo '+numReclamo+' generó la orden de trabajo '+numOtc+', que ya fue completada por Mantenimiento.\n\n'+
+    'Por favor ingresá al siguiente link para confirmar si estás conforme con la solución, o indicar si no lo estás:\n'+link+'\n\n'+
+    'Si no recibimos respuesta en 15 días, el reclamo se cierra automáticamente como conforme.\n\nGracias,\nMantenimiento CALCAR'
+  );
+  if(confirm('OTC '+numOtc+' marcada como Completada.\n\n¿Abrir el mail para avisarle a quien hizo el reclamo '+numReclamo+'?')){
+    window.location.href='mailto:?subject='+asunto+'&body='+cuerpo;
+  }
+}
+
 async function filterOT(){
   const q=g('s-ot').value.toLowerCase(), est=g('f-ot-est').value, tipo=g('f-ot-tipo').value;
   await loadOTC(q,est,tipo);
@@ -2335,10 +2349,24 @@ async function loadReclamos(q='',est=''){
   if(q) query=query.or('numero.ilike.%'+q+'%,sector.ilike.%'+q+'%,equipo_ubicacion.ilike.%'+q+'%,reportado_por.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar reclamos');return;}
+
+  // Autocierre: reclamos "Pendiente de Conformidad" hace más de 15 días sin respuesta del sector
+  const LIMITE_DIAS=15;
+  const ahora=Date.now();
+  const vencidos=data.filter(r=>r.estado==='Pendiente de Conformidad' && r.fecha_pendiente_conformidad &&
+    (ahora-new Date(r.fecha_pendiente_conformidad).getTime())/86400000 >= LIMITE_DIAS);
+  if(vencidos.length){
+    await Promise.all(vencidos.map(r=>sb.from('reclamos').update({
+      estado:'Cerrado', conformidad:'Auto-cerrado', fecha_cierre:new Date().toISOString()
+    }).eq('id',r.id)));
+    vencidos.forEach(r=>{r.estado='Cerrado';r.conformidad='Auto-cerrado';});
+  }
+
   S.reclamos=data.map(r=>({
     id:r.id,num:r.numero,fecha:r.created_at,sector:r.sector,eqUbic:r.equipo_ubicacion,
     desc:r.descripcion,prio:r.prioridad,reportante:r.reportado_por,estado:r.estado,
-    tomadoPor:r.tomado_por,otcId:r.otc_id,motivoRechazo:r.motivo_rechazo
+    tomadoPor:r.tomado_por,otcId:r.otc_id,motivoRechazo:r.motivo_rechazo,
+    conformidad:r.conformidad,motivoNoConforme:r.motivo_no_conforme,vecesReabierto:r.veces_reabierto
   }));
   renderReclamos(S.reclamos);
   const pend=S.reclamos.filter(r=>r.estado==='Pendiente').length;
@@ -2351,7 +2379,7 @@ async function filterReclamos(){
   await loadReclamos(q,est);
 }
 
-function bEstReclamo(e){const m={'Pendiente':'b-amber','Tomado':'b-blue','Convertido':'b-green','Rechazado':'b-red'};return '<span class="badge '+(m[e]||'b-gray')+'">'+e+'</span>';}
+function bEstReclamo(e){const m={'Pendiente':'b-amber','Tomado':'b-blue','Convertido':'b-green','Pendiente de Conformidad':'b-amber','Cerrado':'b-green','Rechazado':'b-red'};return '<span class="badge '+(m[e]||'b-gray')+'">'+e+'</span>';}
 function bPrioReclamo(p){const m={'Alta':'b-red','Media':'b-amber','Baja':'b-gray'};return '<span class="badge '+(m[p]||'b-gray')+'">'+p+'</span>';}
 
 function renderReclamos(arr){
@@ -2370,6 +2398,14 @@ function renderReclamos(arr){
     } else if(r.estado==='Convertido'){
       const otc=S.ot.find(o=>o.id===r.otcId);
       acciones+='<span class="badge b-gray" style="margin-left:3px">'+(otc?otc.num:'OTC #'+r.otcId)+'</span>';
+    } else if(r.estado==='Pendiente de Conformidad'){
+      const otc=S.ot.find(o=>o.id===r.otcId);
+      acciones+='<span class="badge b-gray" style="margin-right:4px">'+(otc?otc.num:'OTC #'+r.otcId)+'</span>';
+      acciones+='<button onclick="marcarConformidad('+mi+',true)" title="El sector confirmó estar conforme" style="padding:3px 8px;border-radius:6px;background:#f0fbf6;border:1px solid #a8dfc8;cursor:pointer;color:#0a5c3e;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">✓ Conforme</button>';
+      acciones+='<button onclick="marcarConformidad('+mi+',false)" title="El sector no quedó conforme, reabre la OTC" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit">✗ No conforme</button>';
+    } else if(r.estado==='Cerrado'){
+      const label=r.conformidad==='Auto-cerrado' ? 'Auto-cerrado (sin respuesta)' : 'Conforme';
+      acciones+='<span class="badge b-gray" style="margin-left:3px" title="'+label+'">'+label+(r.vecesReabierto?' · reabierto x'+r.vecesReabierto:'')+'</span>';
     } else if(r.estado==='Rechazado' && r.motivoRechazo){
       acciones+='<span style="font-size:11px;color:#aaa" title="'+r.motivoRechazo.replace(/"/g,'')+'">(ver motivo)</span>';
     }
@@ -2411,6 +2447,32 @@ async function convertirReclamoAOTC(idx){
     const match=S.eq.find(e=>e.nom.toLowerCase()===r.eqUbic.toLowerCase());
     if(match) g('ot-equipo').value=match.nom;
   }
+}
+
+async function marcarConformidad(idx, conforme){
+  const r=S.reclamos[idx];
+  if(conforme){
+    if(!confirm('¿Confirmar que el sector está conforme con la solución del reclamo '+r.num+'?')) return;
+    loading(true);
+    const {error}=await sb.from('reclamos').update({
+      estado:'Cerrado', conformidad:'Conforme', fecha_cierre:new Date().toISOString()
+    }).eq('id',r.id);
+    loading(false);
+    if(error){dbErr(error,'cerrar reclamo');return;}
+  } else {
+    const motivo=prompt('Motivo por el que el sector no está conforme (esto reabre la OTC):','');
+    if(motivo===null) return;
+    loading(true);
+    const {error:errOtc}=await sb.from('otc').update({estado:'En proceso'}).eq('id',r.otcId);
+    if(errOtc){loading(false);dbErr(errOtc,'reabrir la OTC');return;}
+    const {error}=await sb.from('reclamos').update({
+      estado:'Convertido', conformidad:'No conforme', motivo_no_conforme:motivo||null,
+      fecha_pendiente_conformidad:null, veces_reabierto:(r.vecesReabierto||0)+1
+    }).eq('id',r.id);
+    loading(false);
+    if(error){dbErr(error,'reabrir reclamo');return;}
+  }
+  await loadReclamos(); await loadOTC(); updateDash();
 }
 
 function imprimirReclamo(idx){
@@ -5043,6 +5105,19 @@ async function editOT(idx){
     btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar OTC';
     btn.onclick=saveOT;
     closeModal('m-ot'); await loadOTC(); updateDash();
+    // Si esta OTC se marcó Completada y viene de un reclamo, pasar el reclamo a "Pendiente de Conformidad"
+    if(row.estado==='Completada'){
+      const rec=S.reclamos.find(r=>r.otcId===o.id && (r.estado==='Convertido'));
+      if(rec){
+        const {error:errRec}=await sb.from('reclamos').update({
+          estado:'Pendiente de Conformidad', fecha_pendiente_conformidad:new Date().toISOString()
+        }).eq('id',rec.id);
+        if(!errRec){
+          await loadReclamos();
+          avisarConformidad(rec.num, o.num);
+        }
+      }
+    }
   };
   g('m-ot').classList.add('open');
 }
