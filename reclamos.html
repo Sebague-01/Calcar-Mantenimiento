@@ -293,6 +293,15 @@
       return;
     }
 
+    // Si el reclamo sigue en "Convertido", chequeamos si la OTC vinculada ya está Completada
+    // (puede pasar si se completó al crearla, o si todavía no pasó por el paso automático)
+    if (data.estado === 'Convertido' && data.otc_id) {
+      const { data: otc } = await sb.from('otc').select('estado').eq('id', data.otc_id).maybeSingle();
+      if (otc && otc.estado === 'Completada') {
+        data.estado = 'Pendiente de Conformidad';
+      }
+    }
+
     renderResultado(data);
   }
 

@@ -2310,12 +2310,23 @@ async function saveOT(){
   if(error){loading(false);dbErr(error,'guardar OTC');return;}
   // Si esta OTC viene de un reclamo, marcar el reclamo como convertido y vincularlo
   if(convirtiendoReclamoId){
+    const recId=convirtiendoReclamoId;
     const {error:errRec}=await sb.from('reclamos').update({
       estado:'Convertido', otc_id:data[0].id, fecha_conversion:new Date().toISOString()
-    }).eq('id',convirtiendoReclamoId);
+    }).eq('id',recId);
     if(errRec) dbErr(errRec,'vincular reclamo con la OTC');
     convirtiendoReclamoId=null;
     await loadReclamos();
+    // Si la OTC ya se creó directamente como Completada, pasar el reclamo a "Pendiente de Conformidad"
+    if(row.estado==='Completada' && !errRec){
+      const {error:errPend}=await sb.from('reclamos').update({
+        estado:'Pendiente de Conformidad', fecha_pendiente_conformidad:new Date().toISOString()
+      }).eq('id',recId);
+      if(!errPend){
+        await loadReclamos();
+        avisarConformidad(v('ot-num'), data[0].numero);
+      }
+    }
   }
   loading(false);
   closeModal('m-ot'); clr(['ot-tec','ot-hs','ot-hora-ini','ot-hora-fin','ot-desc','ot-obs']);
@@ -2397,7 +2408,14 @@ function renderReclamos(arr){
       acciones+='<button onclick="rechazarReclamo('+mi+')" style="padding:3px 8px;border-radius:6px;background:#f4f4f2;border:1px solid #ddd;cursor:pointer;color:#888;font-size:11px;font-weight:600;font-family:inherit">Rechazar</button>';
     } else if(r.estado==='Convertido'){
       const otc=S.ot.find(o=>o.id===r.otcId);
-      acciones+='<span class="badge b-gray" style="margin-left:3px">'+(otc?otc.num:'OTC #'+r.otcId)+'</span>';
+      if(otc && otc.estado==='Completada'){
+        // La OTC ya está completada pero el reclamo no llegó a pasar a "Pendiente de Conformidad" (ej: se completó al crearla, o falló el gancho automático)
+        acciones+='<span class="badge b-gray" style="margin-right:4px">'+otc.num+'</span>';
+        acciones+='<button onclick="marcarConformidad('+mi+',true)" title="El sector confirmó estar conforme" style="padding:3px 8px;border-radius:6px;background:#f0fbf6;border:1px solid #a8dfc8;cursor:pointer;color:#0a5c3e;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">✓ Conforme</button>';
+        acciones+='<button onclick="marcarConformidad('+mi+',false)" title="El sector no quedó conforme, reabre la OTC" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit">✗ No conforme</button>';
+      } else {
+        acciones+='<span class="badge b-gray" style="margin-left:3px">'+(otc?otc.num:'OTC #'+r.otcId)+'</span>';
+      }
     } else if(r.estado==='Pendiente de Conformidad'){
       const otc=S.ot.find(o=>o.id===r.otcId);
       acciones+='<span class="badge b-gray" style="margin-right:4px">'+(otc?otc.num:'OTC #'+r.otcId)+'</span>';
