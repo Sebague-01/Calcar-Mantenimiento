@@ -370,7 +370,12 @@
     cont.innerHTML = '<p style="color:#888;font-size:13px">Guardando...</p>';
 
     if (r.otc_id) {
-      await sb.from('otc').update({ estado: 'En proceso' }).eq('id', r.otc_id);
+      const { data: otcRow } = await sb.from('otc').select('observaciones').eq('id', r.otc_id).maybeSingle();
+      const obsPrevia = (otcRow && otcRow.observaciones) || '';
+      const fechaHoy = new Date().toLocaleDateString('es-UY');
+      const nota = '--- REABIERTO por conformidad (' + fechaHoy + ') ---\n' + motivo;
+      const nuevasObs = obsPrevia ? obsPrevia + '\n\n' + nota : nota;
+      await sb.from('otc').update({ estado: 'En proceso', observaciones: nuevasObs }).eq('id', r.otc_id);
     }
     const { error } = await sb.from('reclamos').update({
       estado: 'Convertido', conformidad: 'No conforme', motivo_no_conforme: motivo,

@@ -2311,6 +2311,7 @@ async function saveOT(){
   // Si esta OTC viene de un reclamo, marcar el reclamo como convertido y vincularlo
   if(convirtiendoReclamoId){
     const recId=convirtiendoReclamoId;
+    const recNum=(S.reclamos.find(r=>r.id===recId)||{}).num||'';
     const {error:errRec}=await sb.from('reclamos').update({
       estado:'Convertido', otc_id:data[0].id, fecha_conversion:new Date().toISOString()
     }).eq('id',recId);
@@ -2324,7 +2325,7 @@ async function saveOT(){
       }).eq('id',recId);
       if(!errPend){
         await loadReclamos();
-        avisarConformidad(v('ot-num'), data[0].numero);
+        avisarConformidad(recNum, data[0].numero);
       }
     }
   }
@@ -2336,10 +2337,14 @@ async function saveOT(){
 function avisarConformidad(numReclamo, numOtc){
   const link='https://sebague-01.github.io/Calcar-Mantenimiento/reclamos.html?consultar='+numReclamo;
   const asunto=encodeURIComponent('Reclamo '+numReclamo+' - intervención completada');
+  const NL='\r\n';
   const cuerpo=encodeURIComponent(
-    'Hola,\n\nEl reclamo '+numReclamo+' generó la orden de trabajo '+numOtc+', que ya fue completada por Mantenimiento.\n\n'+
-    'Por favor ingresá al siguiente link para confirmar si estás conforme con la solución, o indicar si no lo estás:\n'+link+'\n\n'+
-    'Si no recibimos respuesta en 15 días, el reclamo se cierra automáticamente como conforme.\n\nGracias,\nMantenimiento CALCAR'
+    'Hola,'+NL+NL+
+    'El reclamo '+numReclamo+' generó la orden de trabajo '+numOtc+', que ya fue completada por Mantenimiento.'+NL+NL+
+    'Por favor ingresá al siguiente link para confirmar si estás conforme con la solución, o indicar si no lo estás:'+NL+
+    link+NL+NL+
+    'Si no recibimos respuesta en 15 días, el reclamo se cierra automáticamente como conforme.'+NL+NL+
+    'Gracias,'+NL+'Mantenimiento CALCAR'
   );
   if(confirm('OTC '+numOtc+' marcada como Completada.\n\n¿Abrir el mail para avisarle a quien hizo el reclamo '+numReclamo+'?')){
     window.location.href='mailto:?subject='+asunto+'&body='+cuerpo;
@@ -2415,6 +2420,9 @@ function renderReclamos(arr){
         acciones+='<button onclick="marcarConformidad('+mi+',false)" title="El sector no quedó conforme, reabre la OTC" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit">✗ No conforme</button>';
       } else {
         acciones+='<span class="badge b-gray" style="margin-left:3px">'+(otc?otc.num:'OTC #'+r.otcId)+'</span>';
+        if(r.vecesReabierto && r.motivoNoConforme){
+          acciones+='<span title="'+r.motivoNoConforme.replace(/"/g,'')+'" style="margin-left:6px;color:#c0392b;font-size:11px;cursor:help">⚠ reabierto x'+r.vecesReabierto+' (ver motivo)</span>';
+        }
       }
     } else if(r.estado==='Pendiente de Conformidad'){
       const otc=S.ot.find(o=>o.id===r.otcId);
@@ -2481,7 +2489,11 @@ async function marcarConformidad(idx, conforme){
     const motivo=prompt('Motivo por el que el sector no está conforme (esto reabre la OTC):','');
     if(motivo===null) return;
     loading(true);
-    const {error:errOtc}=await sb.from('otc').update({estado:'En proceso'}).eq('id',r.otcId);
+    const otcActual=S.ot.find(o=>o.id===r.otcId);
+    const fechaHoy=new Date().toLocaleDateString('es-UY');
+    const nota='--- REABIERTO por conformidad ('+fechaHoy+') ---\n'+motivo;
+    const nuevasObs=(otcActual && otcActual.obs) ? otcActual.obs+'\n\n'+nota : nota;
+    const {error:errOtc}=await sb.from('otc').update({estado:'En proceso',observaciones:nuevasObs}).eq('id',r.otcId);
     if(errOtc){loading(false);dbErr(errOtc,'reabrir la OTC');return;}
     const {error}=await sb.from('reclamos').update({
       estado:'Convertido', conformidad:'No conforme', motivo_no_conforme:motivo||null,
