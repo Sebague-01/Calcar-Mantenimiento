@@ -375,7 +375,11 @@
       const fechaHoy = new Date().toLocaleDateString('es-UY');
       const nota = '--- REABIERTO por conformidad (' + fechaHoy + ') ---\n' + motivo;
       const nuevasObs = obsPrevia ? obsPrevia + '\n\n' + nota : nota;
-      await sb.from('otc').update({ estado: 'En proceso', observaciones: nuevasObs }).eq('id', r.otc_id);
+      const { error: errOtc } = await sb.from('otc').update({ estado: 'En proceso', observaciones: nuevasObs }).eq('id', r.otc_id);
+      if (errOtc) {
+        cont.innerHTML = '<p style="color:#c0392b;font-size:13px">No se pudo reabrir la orden de trabajo: ' + errOtc.message + '</p>';
+        return;
+      }
     }
     const { error } = await sb.from('reclamos').update({
       estado: 'Convertido', conformidad: 'No conforme', motivo_no_conforme: motivo,
@@ -383,7 +387,7 @@
     }).eq('id', r.id);
 
     if (error) {
-      cont.innerHTML = '<p style="color:#c0392b;font-size:13px">No se pudo guardar. Intente nuevamente.</p>';
+      cont.innerHTML = '<p style="color:#c0392b;font-size:13px">No se pudo guardar el reclamo: ' + error.message + '</p>';
       return;
     }
     cont.innerHTML = '<div class="rec-info" style="background:#fdeceb"><b>Reclamo reabierto.</b><br>Mantenimiento fue notificado y va a retomar la intervención.</div>';
