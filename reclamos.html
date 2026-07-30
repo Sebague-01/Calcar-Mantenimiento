@@ -254,11 +254,35 @@
       document.getElementById('msgOk').style.display = 'block';
       form.style.display = 'none';
       document.getElementById('btnImprimir').onclick = () => imprimirComprobante(reclamo);
+
+      if (reclamo.prioridad === 'Alta') {
+        notificarPrioridadAlta(reclamo);
+      }
     }
 
     btn.disabled = false;
     btn.textContent = 'Enviar reclamo';
   });
+
+  // Notificación push (ntfy.sh) para reclamos de prioridad Alta.
+  // No requiere cuenta ni token: basta con instalar la app ntfy y suscribirse al canal de abajo.
+  const NTFY_TOPIC = 'calcar-reclamos-alta-x7k2p9';
+
+  async function notificarPrioridadAlta(reclamo){
+    try {
+      await fetch('https://ntfy.sh/' + NTFY_TOPIC, {
+        method: 'POST',
+        headers: {
+          'Title': 'Reclamo prioridad ALTA - ' + reclamo.numero,
+          'Priority': 'urgent',
+          'Tags': 'rotating_light'
+        },
+        body: reclamo.sector + (reclamo.equipo_ubicacion ? ' - ' + reclamo.equipo_ubicacion : '') + '\n' + reclamo.descripcion
+      });
+    } catch (e) {
+      console.error('No se pudo enviar la notificación ntfy:', e);
+    }
+  }
 
   // ── Pestañas ──
   function mostrarTab(tab){
