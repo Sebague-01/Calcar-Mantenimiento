@@ -725,6 +725,35 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         </div>
       </div>
 
+      <!-- PLAN DE MANTENIMIENTO PREVENTIVO -->
+      <div class="config-card">
+        <div class="config-card-title"><i class="ti ti-calendar-time" style="color:#8B5CF6"></i> Plan de Mantenimiento Preventivo</div>
+        <div class="config-card-sub">Codificación vigente del documento maestro del plan anual</div>
+        <div class="config-field">
+          <label class="config-label">Código del documento</label>
+          <input type="text" class="config-input mono" id="cfg-plan-cod" placeholder="ej: PRO-MANT-003">
+          <span class="config-hint">Código base del procedimiento (sin revisión)</span>
+        </div>
+        <div class="config-field">
+          <label class="config-label">Revisión actual</label>
+          <input type="text" class="config-input" id="cfg-plan-rev" placeholder="ej: Rev.1">
+          <span class="config-hint">Al actualizar la revisión, se crea un nuevo registro en el historial</span>
+        </div>
+        <div class="config-field">
+          <label class="config-label">Descripción del cambio</label>
+          <input type="text" class="config-input" id="cfg-plan-desc" placeholder="ej: Se actualiza frecuencia de tareas">
+        </div>
+        <div class="config-actions">
+          <button class="btn-primary" onclick="saveDocConfig('plan')"><i class="ti ti-check"></i> Guardar y aplicar</button>
+          <button class="btn-warn" onclick="printVersionSheet('plan')"><i class="ti ti-printer"></i> Imprimir hoja de versiones</button>
+        </div>
+        <div style="margin-top:14px">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:8px">Historial de versiones</div>
+          <table class="version-table"><thead><tr><th>Código</th><th>Revisión</th><th>Fecha</th><th>Descripción</th></tr></thead>
+          <tbody id="vh-plan"><tr><td colspan="4" style="text-align:center;color:#aaa;padding:12px">Sin registros aún</td></tr></tbody></table>
+        </div>
+      </div>
+
       <!-- BIBLIOTECA DE INSTRUCCIONES -->
       <div class="config-card" style="grid-column: 1 / -1">
         <div class="config-card-title"><i class="ti ti-book" style="color:#7B4FBE"></i> Biblioteca de Instrucciones de Mantenimiento</div>
@@ -825,6 +854,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
   <!-- PREVENTIVO -->
   <div class="view" id="view-prev">
+    <div style="padding:6px 20px 0;font-size:11px;color:#888;font-family:'Courier New',monospace" id="plan-cod-display"></div>
     <div class="stock-subnav">
       <button class="snav-btn active" onclick="showPrevTab('plan')" id="ptab-plan"><i class="ti ti-clipboard-list"></i> Plan de tareas</button>
       <button class="snav-btn" onclick="showPrevTab('ejecucion')" id="ptab-ejecucion"><i class="ti ti-checks"></i> Ejecuciones</button>
@@ -2090,7 +2120,7 @@ const SUPA_KEY = 'sb_publishable_yEWkPu9QXrcMEQD1HqEXqg_XVJ3QTfx';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // Cache local (para PDFs y selects)
-const S = { ote:[], ot:[], oc:[], eq:[], prov:[], items:[], movs:[], tareas:[], ejecucs:[], inst:[], reclamos:[], docConfig:{ ote:{cod:'',rev:'',history:[]}, otc:{cod:'',rev:'',history:[]}, otp:{cod:'',rev:'',history:[]} } };
+const S = { ote:[], ot:[], oc:[], eq:[], prov:[], items:[], movs:[], tareas:[], ejecucs:[], inst:[], reclamos:[], docConfig:{ ote:{cod:'',rev:'',history:[]}, otc:{cod:'',rev:'',history:[]}, otp:{cod:'',rev:'',history:[]}, plan:{cod:'',rev:'',history:[]} } };
 let convirtiendoReclamoId = null; // id del reclamo que se está convirtiendo a OTC (null si es una OTC nueva)
 
 // ── HELPERS ──
@@ -2231,7 +2261,8 @@ async function loadDocConfig(){
   if(vers) vers.forEach(r=>{
     if(S.docConfig[r.tipo]) S.docConfig[r.tipo].history.push({cod:r.codigo,rev:r.revision,label:r.label,fecha:r.fecha,desc:r.descripcion});
   });
-  ['ote','otc','otp'].forEach(t=>renderVersionHistory(t));
+  ['ote','otc','otp','plan'].forEach(t=>renderVersionHistory(t));
+  updatePlanCodDisplay();
 }
 
 async function saveDocConfig(tipo){
@@ -2253,6 +2284,7 @@ async function saveDocConfig(tipo){
   S.docConfig[tipo].cod=cod; S.docConfig[tipo].rev=rev;
   loading(false);
   renderVersionHistory(tipo);
+  if(tipo==='plan') updatePlanCodDisplay();
   g('cfg-'+tipo+'-desc').value='';
   const btn=event.target; const orig=btn.innerHTML;
   btn.innerHTML='<i class="ti ti-check"></i> Aplicado'; btn.style.background='#0F6E56';
@@ -3049,6 +3081,14 @@ function updateCodDisplay(tipo){
   else{span.textContent='Sin codificación configurada — ir a Configuración';disp.style.background='#fafaf8';disp.style.borderColor='#e0e0e0';disp.style.color='#aaa';}
 }
 
+function updatePlanCodDisplay(){
+  const c=S.docConfig['plan']||{cod:'',rev:''};
+  const el=g('plan-cod-display');
+  if(!el) return;
+  const label=c.cod?(c.cod+(c.rev?' '+c.rev:'')):'';
+  el.textContent = label ? ('Cod: '+label) : 'Sin codificación configurada — ir a Configuración';
+}
+
 async function openModal(id){
   if(id==='m-ote'){
     // Resetear título y botón
@@ -3156,7 +3196,7 @@ function renderVersionHistory(tipo){
 function printBlank(tipo){
   const c=S.docConfig[tipo]||{cod:'',rev:''};
   const label=c.cod?(c.cod+(c.rev?' '+c.rev:'')):'Sin codificación';
-  const nombres={ote:'Orden de Trabajo Externa (OTE)',otc:'Orden de Trabajo Correctiva (OTC)',otp:'Orden de Trabajo Preventiva (OTP)'};
+  const nombres={ote:'Orden de Trabajo Externa (OTE)',otc:'Orden de Trabajo Correctiva (OTC)',otp:'Orden de Trabajo Preventiva (OTP)',plan:'Plan de Mantenimiento Preventivo'};
   g('pb-type').textContent=nombres[tipo]||tipo.toUpperCase();
   g('pb-cod').textContent=label?'Cod: '+label:'';
   g('pb-footer').textContent=label+' · Formulario en blanco · '+new Date().toLocaleDateString('es-UY');
@@ -3173,7 +3213,7 @@ function printBlank(tipo){
 function printVersionSheet(tipo){
   const c=S.docConfig[tipo];
   if(!c||!c.history.length){alert('No hay versiones registradas para este documento.');return;}
-  const nombres={ote:'Orden de Trabajo Externa (OTE)',otc:'Orden de Trabajo Correctiva (OTC)',otp:'Orden de Trabajo Preventiva (OTP)'};
+  const nombres={ote:'Orden de Trabajo Externa (OTE)',otc:'Orden de Trabajo Correctiva (OTC)',otp:'Orden de Trabajo Preventiva (OTP)',plan:'Plan de Mantenimiento Preventivo'};
   const nombre=nombres[tipo]||tipo.toUpperCase();
   g('pv-doc-nombre').textContent=nombre;
   g('pv-doc-cod').textContent='Código base: '+(c.cod||'—');
