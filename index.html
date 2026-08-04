@@ -746,6 +746,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div class="config-actions">
           <button class="btn-primary" onclick="saveDocConfig('plan')"><i class="ti ti-check"></i> Guardar y aplicar</button>
           <button class="btn-warn" onclick="printVersionSheet('plan')"><i class="ti ti-printer"></i> Imprimir hoja de versiones</button>
+          <button class="btn-sec" onclick="printBlank('plan')"><i class="ti ti-file-text"></i> Imprimir formulario en blanco</button>
         </div>
         <div style="margin-top:14px">
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:8px">Historial de versiones</div>
@@ -2104,6 +2105,40 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       </div>
     </div>
 
+    <!-- Info Plan de Mantenimiento -->
+    <div id="pb-info-plan" style="display:none">
+      <div class="pb-sec">Identificación</div>
+      <div class="pb-g3">
+        <div class="pb-f"><div class="pb-fl">Año del plan</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Cantidad de tareas</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Sector / Equipos incluidos</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Elaborado por</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Fecha de elaboración</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Próxima revisión</div><div class="pb-fv"></div></div>
+      </div>
+      <div class="pb-sec">Listado de tareas programadas</div>
+      <table class="prev-checks">
+        <thead><tr><th>Código tarea</th><th>Equipo</th><th>Descripción</th><th style="width:60pt">Frecuencia</th><th style="width:70pt">Fecha prog.</th></tr></thead>
+        <tbody>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="pb-sec">Observaciones</div>
+      <div class="pb-box" style="min-height:40pt"></div>
+      <div class="pb-sec">Firmas</div>
+      <div class="pb-firmas">
+        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Elaborado por</div><div class="pb-firma-sub">Nombre / Aclaración / Firma</div></div>
+        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Jefe de Mantenimiento</div><div class="pb-firma-sub">Aprobación</div></div>
+      </div>
+    </div>
+
     <div class="pb-footer">
       <span>CALCAR · NOFROCK SAS — Sistema de Gestión de Mantenimiento</span>
       <span id="pb-footer"></span>
@@ -3204,6 +3239,7 @@ function printBlank(tipo){
   g('pb-info-ote').style.display  = tipo==='ote'  ? '' : 'none';
   g('pb-info-otc').style.display  = tipo==='otc'  ? '' : 'none';
   g('pb-info-otp').style.display  = tipo==='otp'  ? '' : 'none';
+  g('pb-info-plan').style.display = tipo==='plan' ? '' : 'none';
   g('print-area').classList.remove('printing');
   g('print-ver').classList.remove('printing');
   g('print-blank').classList.add('printing');
