@@ -746,7 +746,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div class="config-actions">
           <button class="btn-primary" onclick="saveDocConfig('plan')"><i class="ti ti-check"></i> Guardar y aplicar</button>
           <button class="btn-warn" onclick="printVersionSheet('plan')"><i class="ti ti-printer"></i> Imprimir hoja de versiones</button>
-          <button class="btn-sec" onclick="printBlank('plan')"><i class="ti ti-file-text"></i> Imprimir formulario en blanco</button>
+          <button class="btn-sec" onclick="imprimirPlanControlado()"><i class="ti ti-file-text"></i> Imprimir formulario en blanco</button>
         </div>
         <div style="margin-top:14px">
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:8px">Historial de versiones</div>
@@ -2105,40 +2105,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       </div>
     </div>
 
-    <!-- Info Plan de Mantenimiento -->
-    <div id="pb-info-plan" style="display:none">
-      <div class="pb-sec">Identificación</div>
-      <div class="pb-g3">
-        <div class="pb-f"><div class="pb-fl">Año del plan</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Cantidad de tareas</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Sector / Equipos incluidos</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Elaborado por</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Fecha de elaboración</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Próxima revisión</div><div class="pb-fv"></div></div>
-      </div>
-      <div class="pb-sec">Listado de tareas programadas</div>
-      <table class="prev-checks">
-        <thead><tr><th>Código tarea</th><th>Equipo</th><th>Descripción</th><th style="width:60pt">Frecuencia</th><th style="width:70pt">Fecha prog.</th></tr></thead>
-        <tbody>
-          <tr><td></td><td></td><td></td><td></td><td></td></tr>
-          <tr><td></td><td></td><td></td><td></td><td></td></tr>
-          <tr><td></td><td></td><td></td><td></td><td></td></tr>
-          <tr><td></td><td></td><td></td><td></td><td></td></tr>
-          <tr><td></td><td></td><td></td><td></td><td></td></tr>
-          <tr><td></td><td></td><td></td><td></td><td></td></tr>
-          <tr><td></td><td></td><td></td><td></td><td></td></tr>
-          <tr><td></td><td></td><td></td><td></td><td></td></tr>
-        </tbody>
-      </table>
-      <div class="pb-sec">Observaciones</div>
-      <div class="pb-box" style="min-height:40pt"></div>
-      <div class="pb-sec">Firmas</div>
-      <div class="pb-firmas">
-        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Elaborado por</div><div class="pb-firma-sub">Nombre / Aclaración / Firma</div></div>
-        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Jefe de Mantenimiento</div><div class="pb-firma-sub">Aprobación</div></div>
-      </div>
-    </div>
-
     <div class="pb-footer">
       <span>CALCAR · NOFROCK SAS — Sistema de Gestión de Mantenimiento</span>
       <span id="pb-footer"></span>
@@ -3231,7 +3197,7 @@ function renderVersionHistory(tipo){
 function printBlank(tipo){
   const c=S.docConfig[tipo]||{cod:'',rev:''};
   const label=c.cod?(c.cod+(c.rev?' '+c.rev:'')):'Sin codificación';
-  const nombres={ote:'Orden de Trabajo Externa (OTE)',otc:'Orden de Trabajo Correctiva (OTC)',otp:'Orden de Trabajo Preventiva (OTP)',plan:'Plan de Mantenimiento Preventivo'};
+  const nombres={ote:'Orden de Trabajo Externa (OTE)',otc:'Orden de Trabajo Correctiva (OTC)',otp:'Orden de Trabajo Preventiva (OTP)'};
   g('pb-type').textContent=nombres[tipo]||tipo.toUpperCase();
   g('pb-cod').textContent=label?'Cod: '+label:'';
   g('pb-footer').textContent=label+' · Formulario en blanco · '+new Date().toLocaleDateString('es-UY');
@@ -3239,7 +3205,6 @@ function printBlank(tipo){
   g('pb-info-ote').style.display  = tipo==='ote'  ? '' : 'none';
   g('pb-info-otc').style.display  = tipo==='otc'  ? '' : 'none';
   g('pb-info-otp').style.display  = tipo==='otp'  ? '' : 'none';
-  g('pb-info-plan').style.display = tipo==='plan' ? '' : 'none';
   g('print-area').classList.remove('printing');
   g('print-ver').classList.remove('printing');
   g('print-blank').classList.add('printing');
@@ -5802,22 +5767,38 @@ function cerrarReportePrint() {
 // ══════════════════════════════════════
 // REPORTE: PLAN DE MANTENIMIENTO PREVENTIVO
 // ══════════════════════════════════════
-async function generarReportePlanPreventivo(){
-  loading(true,'Generando plan preventivo...');
-
-  // Cargar tareas con inst_cod
+// Fetch + agrupación de tareas e instrucciones — usado por el preview de Reportes y por el documento controlado
+async function fetchPlanTareasInstr(){
   const {data:tarData, error:tarErr} = await sb.from('otp_tareas').select('*').order('equipo,codigo');
-  if(tarErr){loading(false);dbErr(tarErr,'cargar tareas');return;}
-
-  // Cargar instrucciones (solo las usadas)
+  if(tarErr) return {error:tarErr};
   const {data:instData, error:instErr} = await sb.from('instrucciones_mant').select('*');
-  if(instErr){loading(false);dbErr(instErr,'cargar instrucciones');return;}
-
-  loading(false);
+  if(instErr) return {error:instErr};
 
   const tareas = tarData||[];
   const instMap = {};
   (instData||[]).forEach(i=>{ instMap[i.codigo]={resumen:i.resumen,proc:i.procedimiento||''}; });
+
+  const grupos = {};
+  tareas.forEach(t=>{
+    const eq = t.equipo||'(sin equipo)';
+    if(!grupos[eq]) grupos[eq]=[];
+    grupos[eq].push(t);
+  });
+
+  const cEq = Object.keys(grupos).length;
+  const cTar = tareas.length;
+  const cCal = tareas.filter(t=>!t.intervalo_hs).length;
+  const cHs  = tareas.filter(t=>!!t.intervalo_hs).length;
+
+  return {tareas, instMap, grupos, cEq, cTar, cCal, cHs};
+}
+
+async function generarReportePlanPreventivo(){
+  loading(true,'Generando plan preventivo...');
+  const r = await fetchPlanTareasInstr();
+  loading(false);
+  if(r.error){dbErr(r.error,'cargar plan preventivo');return;}
+  const {tareas, instMap, grupos, cEq, cTar, cCal, cHs} = r;
 
   const preview = g('rpp-preview');
   const empty   = g('rpp-empty');
@@ -5831,19 +5812,7 @@ async function generarReportePlanPreventivo(){
   empty.style.display='none';
   preview.style.display='block';
 
-  // Agrupar por equipo
-  const grupos = {};
-  tareas.forEach(t=>{
-    const eq = t.equipo||'(sin equipo)';
-    if(!grupos[eq]) grupos[eq]=[];
-    grupos[eq].push(t);
-  });
-
   // Resumen
-  const cEq = Object.keys(grupos).length;
-  const cTar = tareas.length;
-  const cCal = tareas.filter(t=>!t.intervalo_hs).length;
-  const cHs  = tareas.filter(t=>!!t.intervalo_hs).length;
   g('rpp-resumen-txt').textContent = `${cEq} equipo${cEq!==1?'s':''} · ${cTar} tarea${cTar!==1?'s':''} · ${cCal} calendario · ${cHs} horómetro`;
 
   // Preview en pantalla
@@ -5887,12 +5856,13 @@ async function generarReportePlanPreventivo(){
   window._rppData = {grupos, instMap, cEq, cTar, cCal, cHs};
 }
 
-function imprimirPlanPreventivo(){
-  const d = window._rppData;
-  if(!d) return;
+function buildPlanReportHTML(d, opts){
+  opts = opts||{};
   const {grupos, instMap, cEq, cTar, cCal, cHs} = d;
   const hoy = new Date().toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',year:'numeric'});
   const anio = new Date().getFullYear();
+  const cfgPlan = S.docConfig['plan']||{cod:'',rev:''};
+  const codLabel = cfgPlan.cod ? (cfgPlan.cod+(cfgPlan.rev?' '+cfgPlan.rev:'')) : '';
 
   // Recopilar instrucciones usadas (sin duplicados)
   const instUsadas = {};
@@ -5955,6 +5925,24 @@ function imprimirPlanPreventivo(){
       </div>`;
   }
 
+  // Firmas — solo para el documento controlado (Control de Versiones)
+  const firmas = opts.conFirmas ? `
+    <div style="margin-top:20pt;border-top:1pt solid #ccc;padding-top:14pt;break-inside:avoid">
+      <div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.5pt;color:#777;margin-bottom:14pt">Firmas</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24pt">
+        <div style="text-align:center">
+          <div style="border-bottom:1.5pt solid #333;height:28pt"></div>
+          <div style="font-size:8pt;font-weight:700;text-transform:uppercase;color:#444;margin-top:4pt">Elaborado por</div>
+          <div style="font-size:7pt;color:#aaa">Nombre / Aclaración / Firma</div>
+        </div>
+        <div style="text-align:center">
+          <div style="border-bottom:1.5pt solid #333;height:28pt"></div>
+          <div style="font-size:8pt;font-weight:700;text-transform:uppercase;color:#444;margin-top:4pt">Jefe de Mantenimiento</div>
+          <div style="font-size:7pt;color:#aaa">Aprobación</div>
+        </div>
+      </div>
+    </div>` : '';
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -5980,27 +5968,49 @@ function imprimirPlanPreventivo(){
         <div style="width:48pt;height:48pt;background:#1D9E75;border-radius:8pt;display:flex;align-items:center;justify-content:center;font-size:20pt;font-weight:800;color:#fff;text-align:center;line-height:48pt">CA</div>
       </td>
       <td style="padding-left:10pt">
-        <div style="font-size:13pt;font-weight:700;margin-bottom:2pt">Plan de Mantenimiento Preventivo ${anio}</div>
+        <div style="font-size:13pt;font-weight:700;margin-bottom:2pt">Plan de Mantenimiento Preventivo ${anio}${opts.conFirmas?' <span style="font-size:8pt;font-weight:400;color:#888">— documento controlado</span>':''}</div>
         <div style="font-size:8.5pt;color:#555">CALCAR · NOFROCK SAS &nbsp;·&nbsp; Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
         <div style="font-size:8pt;color:#888;margin-top:2pt">Emisión: ${hoy} &nbsp;·&nbsp; ${cEq} equipo${cEq!==1?'s':''} · ${cTar} tarea${cTar!==1?'s':''} · ${cCal} calendario · ${cHs} horómetro</div>
+        ${codLabel?`<div style="font-size:8pt;color:#0a5c3e;margin-top:2pt;font-family:'Courier New',monospace;font-weight:700">Cod: ${codLabel}</div>`:''}
       </td>
     </tr>
   </table>
 
   ${filas}
   ${glosario}
+  ${firmas}
 
   <div style="margin-top:14pt;border-top:0.5pt solid #ccc;padding-top:6pt;font-size:7.5pt;color:#aaa;display:flex;justify-content:space-between">
-    <span>CALCAR · Plan de Mantenimiento Preventivo ${anio}</span>
+    <span>CALCAR · Plan de Mantenimiento Preventivo ${anio}${codLabel?' · '+codLabel:''}</span>
     <span>Generado: ${hoy}</span>
   </div>
 </body>
 </html>`;
 
+  return html;
+}
+
+function abrirVentanaPlan(html){
   const ventana = window.open('','_blank','width=900,height=700');
   if(!ventana){alert('El navegador bloqueó la ventana del reporte. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   ventana.document.write(html);
   ventana.document.close();
+}
+
+function imprimirPlanPreventivo(){
+  const d = window._rppData;
+  if(!d) return;
+  abrirVentanaPlan(buildPlanReportHTML(d,{conFirmas:false}));
+}
+
+async function imprimirPlanControlado(){
+  loading(true,'Generando documento del plan...');
+  const r = await fetchPlanTareasInstr();
+  loading(false);
+  if(r.error){dbErr(r.error,'cargar plan preventivo');return;}
+  if(!r.tareas.length){alert('No hay tareas cargadas en el plan preventivo todavía.');return;}
+  const {grupos, instMap, cEq, cTar, cCal, cHs} = r;
+  abrirVentanaPlan(buildPlanReportHTML({grupos, instMap, cEq, cTar, cCal, cHs},{conFirmas:true}));
 }
 
 
