@@ -5864,13 +5864,8 @@ function buildPlanReportHTML(d, opts){
   const cfgPlan = S.docConfig['plan']||{cod:'',rev:''};
   const codLabel = cfgPlan.cod ? (cfgPlan.cod+(cfgPlan.rev?' '+cfgPlan.rev:'')) : '';
 
-  // Recopilar instrucciones usadas (sin duplicados)
-  const instUsadas = {};
-  Object.values(grupos).flat().forEach(t=>{
-    if(t.inst_cod && instMap[t.inst_cod] && !instUsadas[t.inst_cod]){
-      instUsadas[t.inst_cod] = instMap[t.inst_cod];
-    }
-  });
+  // Recopilar tareas con pasos definidos en el plan (glosario tomado de las tareas, no de la biblioteca)
+  const tareasConPasos = Object.values(grupos).flat().filter(t=>Array.isArray(t.checks) && t.checks.length);
 
   // Filas del cuerpo por equipo
   let filas = '';
@@ -5905,21 +5900,20 @@ function buildPlanReportHTML(d, opts){
       </div>`;
   });
 
-  // Glosario de instrucciones usadas
-  const instKeys = Object.keys(instUsadas).sort();
+  // Glosario de instrucciones — tomado de los pasos definidos en cada tarea del plan
   let glosario = '';
-  if(instKeys.length){
+  if(tareasConPasos.length){
     glosario = `
       <div style="margin-top:20pt;border-top:1.5pt solid #1D9E75;padding-top:12pt;break-before:page">
         <div style="font-size:11pt;font-weight:700;margin-bottom:10pt;color:#1a1a18">Descripción de instrucciones de mantenimiento</div>
-        ${instKeys.map(cod=>{
-          const inst = instUsadas[cod];
-          const pasos = inst.proc ? inst.proc.split(/\.\s+|\n/).map(s=>s.trim()).filter(s=>s.length>15).slice(0,12) : [];
+        ${tareasConPasos.map(t=>{
+          const pasos = t.checks||[];
+          const instCod = t.inst_cod||'';
           return `<div style="margin-bottom:10pt;break-inside:avoid">
-            <div style="font-family:monospace;font-size:9pt;font-weight:700;color:#7B4FBE;margin-bottom:2pt">${cod} — ${inst.resumen}</div>
-            ${pasos.length?`<ol style="margin:0;padding-left:16pt;font-size:8pt;color:#444;line-height:1.6">
-              ${pasos.map(p=>`<li>${p.replace(/^\d+[\-\.\)]\s*/,'')}</li>`).join('')}
-            </ol>`:`<div style="font-size:8pt;color:#888;font-style:italic">${inst.proc||'Sin procedimiento detallado.'}</div>`}
+            <div style="font-family:monospace;font-size:9pt;font-weight:700;color:#7B4FBE;margin-bottom:2pt">${t.codigo||'—'}${instCod?` (${instCod})`:''} — ${t.descripcion||''}</div>
+            <ol style="margin:0;padding-left:16pt;font-size:8pt;color:#444;line-height:1.6">
+              ${pasos.map(p=>`<li>${p}</li>`).join('')}
+            </ol>
           </div>`;
         }).join('')}
       </div>`;
