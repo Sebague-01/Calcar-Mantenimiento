@@ -408,7 +408,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="logo-mark">CA</div>
       <div><div class="app-title">CALCAR — Gestión de Mantenimiento</div><div class="app-sub">Planta Tarariras</div></div>
     </div>
-    <span class="badge b-green">v3.5</span>
+    <span class="badge b-green">v3.4</span>
     <div style="display:flex;align-items:center;gap:8px;margin-left:12px">
       <span style="font-size:12px;color:#888" id="topbar-user"></span>
       <button onclick="doLogout()" class="btn-sec" style="padding:5px 10px;font-size:12px"><i class="ti ti-logout"></i> Salir</button>
@@ -498,7 +498,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     </div>
     <div class="table-wrap">
       <table class="data-table">
-        <thead><tr><th>Número</th><th>Fecha</th><th>Equipo</th><th>Funcionario</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th style="width:52px"></th></tr></thead>
+        <thead><tr><th>Número</th><th>Fecha</th><th>Equipo</th><th>Técnico</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th style="width:52px"></th></tr></thead>
         <tbody id="tb-ot"><tr><td colspan="8"><div class="empty"><i class="ti ti-tool"></i>Sin órdenes. Creá la primera OTC.</div></td></tr></tbody>
       </table>
     </div>
@@ -725,54 +725,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         </div>
       </div>
 
-      <!-- PLAN DE MANTENIMIENTO PREVENTIVO -->
-      <div class="config-card">
-        <div class="config-card-title"><i class="ti ti-calendar-time" style="color:#8B5CF6"></i> Plan de Mantenimiento Preventivo</div>
-        <div class="config-card-sub">Codificación vigente del documento maestro del plan anual</div>
-        <div class="config-field">
-          <label class="config-label">Código del documento</label>
-          <input type="text" class="config-input mono" id="cfg-plan-cod" placeholder="ej: PRO-MANT-003">
-          <span class="config-hint">Código base del procedimiento (sin revisión)</span>
-        </div>
-        <div class="config-field">
-          <label class="config-label">Revisión actual</label>
-          <input type="text" class="config-input" id="cfg-plan-rev" placeholder="ej: Rev.1">
-          <span class="config-hint">Al actualizar la revisión, se crea un nuevo registro en el historial</span>
-        </div>
-        <div class="config-field">
-          <label class="config-label">Descripción del cambio</label>
-          <input type="text" class="config-input" id="cfg-plan-desc" placeholder="ej: Se actualiza frecuencia de tareas">
-        </div>
-        <div class="config-actions">
-          <button class="btn-primary" onclick="saveDocConfig('plan')"><i class="ti ti-check"></i> Guardar y aplicar</button>
-          <button class="btn-warn" onclick="printVersionSheet('plan')"><i class="ti ti-printer"></i> Imprimir hoja de versiones</button>
-          <button class="btn-sec" onclick="imprimirPlanControlado()"><i class="ti ti-file-text"></i> Imprimir formulario en blanco</button>
-        </div>
-        <div style="margin-top:14px">
-          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:8px">Historial de versiones</div>
-          <table class="version-table"><thead><tr><th>Código</th><th>Revisión</th><th>Fecha</th><th>Descripción</th></tr></thead>
-          <tbody id="vh-plan"><tr><td colspan="4" style="text-align:center;color:#aaa;padding:12px">Sin registros aún</td></tr></tbody></table>
-        </div>
-      </div>
-
-      <!-- FUNCIONARIOS DE MANTENIMIENTO -->
-      <div class="config-card" style="grid-column: 1 / -1">
-        <div class="config-card-title"><i class="ti ti-users" style="color:#BA7517"></i> Funcionarios de Mantenimiento</div>
-        <div class="config-card-sub">Nombre, apellido y sub-sector de cada funcionario. Se usan para completar automáticamente el desplegable de "Funcionario" en OTC, tareas preventivas y ejecuciones OTP.</div>
-
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <div class="search-box" style="width:220px"><i class="ti ti-search"></i><input type="text" placeholder="Buscar funcionario..." id="s-func" oninput="filterFuncionarios()"></div>
-          <button class="btn-primary" style="padding:6px 12px;font-size:12px" onclick="openModal('m-funcionario')"><i class="ti ti-plus"></i> Nuevo funcionario</button>
-        </div>
-
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Nombre</th><th>Apellido</th><th>Sub-sector</th><th>Estado</th><th style="width:100px">Acciones</th></tr></thead>
-            <tbody id="tb-func"><tr><td colspan="5"><div class="empty"><i class="ti ti-users"></i>Sin funcionarios cargados.</div></td></tr></tbody>
-          </table>
-        </div>
-      </div>
-
       <!-- BIBLIOTECA DE INSTRUCCIONES -->
       <div class="config-card" style="grid-column: 1 / -1">
         <div class="config-card-title"><i class="ti ti-book" style="color:#7B4FBE"></i> Biblioteca de Instrucciones de Mantenimiento</div>
@@ -873,7 +825,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
   <!-- PREVENTIVO -->
   <div class="view" id="view-prev">
-    <div style="padding:6px 20px 0;font-size:11px;color:#888;font-family:'Courier New',monospace" id="plan-cod-display"></div>
     <div class="stock-subnav">
       <button class="snav-btn active" onclick="showPrevTab('plan')" id="ptab-plan"><i class="ti ti-clipboard-list"></i> Plan de tareas</button>
       <button class="snav-btn" onclick="showPrevTab('ejecucion')" id="ptab-ejecucion"><i class="ti ti-checks"></i> Ejecuciones</button>
@@ -914,7 +865,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <table class="data-table">
           <thead><tr>
             <th>N° OT-P</th><th>Fecha</th><th>Equipo</th><th>Tarea</th>
-            <th>Funcionario</th><th>Estado</th><th style="width:52px"></th>
+            <th>Técnico</th><th>Estado</th><th style="width:52px"></th>
           </tr></thead>
           <tbody id="tb-ejec"><tr><td colspan="7"><div class="empty"><i class="ti ti-checks"></i>Sin ejecuciones registradas.</div></td></tr></tbody>
         </table>
@@ -1114,7 +1065,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       </div>
       <div class="form-section">Datos del trabajo</div>
       <div class="form-group"><label class="form-label">Equipo</label><select class="form-input" id="ot-equipo"><option value="">— seleccioná —</option></select></div>
-      <div class="form-group"><label class="form-label">Funcionario</label><select class="form-input" id="ot-tec"><option value="">— seleccioná —</option></select></div>
+      <div class="form-group"><label class="form-label">Funcionario</label><input type="text" class="form-input" id="ot-tec" placeholder="Nombre del funcionario"></div>
       <div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="ot-tipo"><option>Correctivo</option><option>Predictivo</option></select></div>
       <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="ot-prio"><option>Normal</option><option>Alta</option><option>Urgente</option><option>Baja</option></select></div>
       <div class="form-group"><label class="form-label">Estado</label><select class="form-input" id="ot-estado"><option>Pendiente</option><option>En proceso</option><option>Completada</option><option>Cancelada</option></select></div>
@@ -1123,12 +1074,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="form-group"><label class="form-label">Hora de finalización <span class="form-optional">(opcional)</span></label><input type="time" class="form-input" id="ot-hora-fin"></div>
       <div class="form-group full"><label class="form-label">Descripción / Tarea</label><textarea class="form-input" id="ot-desc" placeholder="Qué hay que hacer..."></textarea></div>
       <div class="form-group full"><label class="form-label">Observaciones <span class="form-optional">(opcional)</span></label><textarea class="form-input" id="ot-obs" placeholder="Qué se encontró, qué se hizo..."></textarea></div>
-      <div class="form-section">Trazabilidad preventiva</div>
-      <div class="form-group full">
-        <label class="form-label">¿Asociar a una OTP ejecutada? <span class="form-optional">(opcional)</span></label>
-        <select class="form-input" id="ot-otp-sel"><option value="">— No asociar —</option></select>
-        <span class="form-hint">Si esta correctiva surgió de (o está relacionada con) una ejecución preventiva, vinculala acá para poder trazar todo el historial junto.</span>
-      </div>
     </div>
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-ot')">Cancelar</button>
@@ -1515,7 +1460,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <span class="form-hint">Primera ejecución programada — define todo el calendario anual</span>
       </div>
       <div class="form-group"><label class="form-label">Tiempo estimado</label><input type="text" class="form-input" id="tar-tiempo" placeholder="ej: 2 horas"></div>
-      <div class="form-group"><label class="form-label">Funcionario asignado <span class="form-optional">(opcional)</span></label><select class="form-input" id="tar-tec"><option value="">— seleccioná —</option></select></div>
+      <div class="form-group"><label class="form-label">Técnico asignado <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="tar-tec" placeholder="Nombre del técnico"></div>
 
       <div class="form-section">Pasos / Checkpoints</div>
       <div class="form-group full">
@@ -1592,7 +1537,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="form-grid">
       <div class="form-group"><label class="form-label">N° OT-P</label><input class="form-input mono" id="ejec-num" readonly></div>
       <div class="form-group"><label class="form-label">Fecha de ejecución</label><input type="date" class="form-input" id="ejec-fecha"></div>
-      <div class="form-group"><label class="form-label">Funcionario ejecutor</label><select class="form-input" id="ejec-tec"><option value="">— seleccioná —</option></select></div>
+      <div class="form-group"><label class="form-label">Técnico ejecutor</label><input type="text" class="form-input" id="ejec-tec" placeholder="Nombre del técnico"></div>
       <div class="form-group"><label class="form-label">Horas del equipo <span class="form-optional">(opcional)</span></label><input type="number" class="form-input" id="ejec-horas-eq" placeholder="Lectura del horómetro"></div>
       <div class="form-group"><label class="form-label">Estado</label>
         <select class="form-input" id="ejec-estado"><option>Completada</option><option>Pendiente</option><option>Parcial</option><option>No realizada</option></select>
@@ -1872,23 +1817,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   </div>
 </div>
 
-<!-- FUNCIONARIO -->
-<div class="modal-overlay" id="m-funcionario">
-  <div class="modal-box">
-    <div class="modal-header"><div class="modal-title">Nuevo funcionario</div><button class="modal-close" onclick="closeModal('m-funcionario')"><i class="ti ti-x"></i></button></div>
-    <div class="form-grid">
-      <div class="form-group"><label class="form-label">Nombre</label><input type="text" class="form-input" id="func-nombre" placeholder="ej: Roberto"></div>
-      <div class="form-group"><label class="form-label">Apellido</label><input type="text" class="form-input" id="func-apellido" placeholder="ej: Fernández"></div>
-      <div class="form-group full"><label class="form-label">Sub-sector <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="func-subsector" placeholder="ej: Mecánica, Eléctrica, Instrumentación, Refrigeración..."></div>
-      <div class="form-group"><label class="form-label">Estado</label><select class="form-input" id="func-activo"><option value="true">Activo</option><option value="false">Inactivo</option></select></div>
-    </div>
-    <div class="form-actions">
-      <button class="btn-sec" onclick="closeModal('m-funcionario')">Cancelar</button>
-      <button class="btn-primary" onclick="saveFuncionario()"><i class="ti ti-device-floppy"></i> Guardar funcionario</button>
-    </div>
-  </div>
-</div>
-
 <!-- GESTIÓN DE ESTADO DE TAREA PREVENTIVA -->
 <div class="modal-overlay" id="m-estado-tarea">
   <div class="modal-box narrow">
@@ -2081,7 +2009,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="pb-sec">Identificación</div>
       <div class="pb-g3">
         <div class="pb-f"><div class="pb-fl">Equipo</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Funcionario responsable</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Técnico responsable</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Tipo</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Prioridad</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Estado</div><div class="pb-fv"></div></div>
@@ -2135,13 +2063,13 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="pb-g3">
         <div class="pb-f"><div class="pb-fl">Fecha de ejecución</div><div class="pb-fv"></div></div>
         <div class="pb-f"><div class="pb-fl">Horas del equipo</div><div class="pb-fv"></div></div>
-        <div class="pb-f"><div class="pb-fl">Funcionario ejecutor</div><div class="pb-fv"></div></div>
+        <div class="pb-f"><div class="pb-fl">Técnico ejecutor</div><div class="pb-fv"></div></div>
       </div>
       <div class="pb-sec">Observaciones</div>
       <div class="pb-box" style="min-height:40pt"></div>
       <div class="pb-sec">Firmas</div>
       <div class="pb-firmas">
-        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Funcionario ejecutor</div><div class="pb-firma-sub">Nombre / Aclaración / Firma</div></div>
+        <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Técnico ejecutor</div><div class="pb-firma-sub">Nombre / Aclaración / Firma</div></div>
         <div class="pb-firma"><div class="pb-firma-line"></div><div class="pb-firma-lbl">Jefe de Mantenimiento</div><div class="pb-firma-sub">Aprobación</div></div>
       </div>
     </div>
@@ -2162,7 +2090,7 @@ const SUPA_KEY = 'sb_publishable_yEWkPu9QXrcMEQD1HqEXqg_XVJ3QTfx';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // Cache local (para PDFs y selects)
-const S = { ote:[], ot:[], oc:[], eq:[], prov:[], items:[], movs:[], tareas:[], ejecucs:[], inst:[], reclamos:[], funcionarios:[], docConfig:{ ote:{cod:'',rev:'',history:[]}, otc:{cod:'',rev:'',history:[]}, otp:{cod:'',rev:'',history:[]}, plan:{cod:'',rev:'',history:[]} } };
+const S = { ote:[], ot:[], oc:[], eq:[], prov:[], items:[], movs:[], tareas:[], ejecucs:[], inst:[], reclamos:[], docConfig:{ ote:{cod:'',rev:'',history:[]}, otc:{cod:'',rev:'',history:[]}, otp:{cod:'',rev:'',history:[]} } };
 let convirtiendoReclamoId = null; // id del reclamo que se está convirtiendo a OTC (null si es una OTC nueva)
 
 // ── HELPERS ──
@@ -2209,16 +2137,13 @@ async function showApp(){
   if(user) g('topbar-user').textContent=user.email;
   loading(true,'Cargando datos...');
   await Promise.all([
-    loadEquipos(), loadProveedores(), loadDocConfig(), loadFuncionarios(),
+    loadEquipos(), loadProveedores(), loadDocConfig(),
     loadOTE(), loadOTC(), loadOC(),
     loadItems(), loadMovs(),
     loadTareas(), loadEjecucs(), loadInst(), loadEventos(), loadLecturas(),
     loadReclamos()
   ]);
   await loadPlan();
-  fillOtpSel();
-  renderOT(S.ot);
-  renderEjec(S.ejecucs);
   loading(false);
   updateDash();
 }
@@ -2306,8 +2231,7 @@ async function loadDocConfig(){
   if(vers) vers.forEach(r=>{
     if(S.docConfig[r.tipo]) S.docConfig[r.tipo].history.push({cod:r.codigo,rev:r.revision,label:r.label,fecha:r.fecha,desc:r.descripcion});
   });
-  ['ote','otc','otp','plan'].forEach(t=>renderVersionHistory(t));
-  updatePlanCodDisplay();
+  ['ote','otc','otp'].forEach(t=>renderVersionHistory(t));
 }
 
 async function saveDocConfig(tipo){
@@ -2329,7 +2253,6 @@ async function saveDocConfig(tipo){
   S.docConfig[tipo].cod=cod; S.docConfig[tipo].rev=rev;
   loading(false);
   renderVersionHistory(tipo);
-  if(tipo==='plan') updatePlanCodDisplay();
   g('cfg-'+tipo+'-desc').value='';
   const btn=event.target; const orig=btn.innerHTML;
   btn.innerHTML='<i class="ti ti-check"></i> Aplicado'; btn.style.background='#0F6E56';
@@ -2375,13 +2298,13 @@ async function loadOTC(q='',est='',tipo=''){
   if(q) query=query.or('numero.ilike.%'+q+'%,equipo.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar OTC');return;}
-  S.ot=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,cod:r.cod_doc,eq:r.equipo,tec:r.tecnico,tipo:r.tipo,prio:r.prioridad,estado:r.estado,hs:r.horas_est,horaIni:r.hora_ini,horaFin:r.hora_fin,desc:r.descripcion,obs:r.observaciones,otpEjecId:r.otp_ejec_id||null}));
+  S.ot=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,cod:r.cod_doc,eq:r.equipo,tec:r.tecnico,tipo:r.tipo,prio:r.prioridad,estado:r.estado,hs:r.horas_est,horaIni:r.hora_ini,horaFin:r.hora_fin,desc:r.descripcion,obs:r.observaciones}));
   renderOT(S.ot);
 }
 
 async function saveOT(){
   const cod=getCodLabel('otc');
-  const row={numero:v('ot-num'),fecha:v('ot-fecha'),cod_doc:cod||null,equipo:v('ot-equipo')||null,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:v('ot-estado'),horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
+  const row={numero:v('ot-num'),fecha:v('ot-fecha'),cod_doc:cod||null,equipo:v('ot-equipo')||null,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:v('ot-estado'),horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null};
   loading(true);
   const {data,error}=await sb.from('otc').insert(row).select();
   if(error){loading(false);dbErr(error,'guardar OTC');return;}
@@ -3126,14 +3049,6 @@ function updateCodDisplay(tipo){
   else{span.textContent='Sin codificación configurada — ir a Configuración';disp.style.background='#fafaf8';disp.style.borderColor='#e0e0e0';disp.style.color='#aaa';}
 }
 
-function updatePlanCodDisplay(){
-  const c=S.docConfig['plan']||{cod:'',rev:''};
-  const el=g('plan-cod-display');
-  if(!el) return;
-  const label=c.cod?(c.cod+(c.rev?' '+c.rev:'')):'';
-  el.textContent = label ? ('Cod: '+label) : 'Sin codificación configurada — ir a Configuración';
-}
-
 async function openModal(id){
   if(id==='m-ote'){
     // Resetear título y botón
@@ -3167,7 +3082,6 @@ async function openModal(id){
     g('ot-prio').value='Normal';
     g('ot-estado').value='Pendiente';
     g('ot-equipo').value='';
-    fillOtpSel('');
     // Cargar número y fecha
     g('ot-num').value=await nextNum('otc','numero','OTC');
     g('ot-fecha').value=tod();
@@ -3204,13 +3118,6 @@ async function openModal(id){
     clr(['inst-cod','inst-resumen','inst-proc']);
     g('m-inst').classList.add('open'); return;
   }
-  if(id==='m-funcionario'){
-    editandoFuncionarioId=null;
-    g('m-funcionario').querySelector('.modal-title').textContent='Nuevo funcionario';
-    clr(['func-nombre','func-apellido','func-subsector']);
-    g('func-activo').value='true';
-    g('m-funcionario').classList.add('open'); return;
-  }
   if(id==='m-estado-tarea'){ g('m-estado-tarea').classList.add('open'); return; }
   if(id==='m-tarea'){ openTareaModal(); return; }
   if(id==='m-lectura'){ openLecturaModal(); return; }
@@ -3230,22 +3137,6 @@ function autoRutProv(){
   const sel=g('ote-prov');
   const opt=sel.options[sel.selectedIndex];
   g('ote-rut-prov').value=opt?opt.dataset.rut||'':'';
-}
-
-// Completa el selector "¿Asociar a una OTP ejecutada?" del modal de OTC
-// con las ejecuciones OTP registradas, más recientes primero.
-function fillOtpSel(currentId){
-  const sel=g('ot-otp-sel');
-  if(!sel) return;
-  const cur=currentId!==undefined?currentId:sel.value;
-  sel.innerHTML='<option value="">— No asociar —</option>';
-  S.ejecucs.forEach(e=>{
-    const o=document.createElement('option');
-    o.value=e.id;
-    o.textContent=e.num+' — '+(e.equipo||'')+' — '+(e.desc||'')+' ('+(e.fecha||'')+')';
-    sel.appendChild(o);
-  });
-  sel.value=cur||'';
 }
 
 // Configuración — renderVersionHistory y prints se mantienen igual
@@ -3282,7 +3173,7 @@ function printBlank(tipo){
 function printVersionSheet(tipo){
   const c=S.docConfig[tipo];
   if(!c||!c.history.length){alert('No hay versiones registradas para este documento.');return;}
-  const nombres={ote:'Orden de Trabajo Externa (OTE)',otc:'Orden de Trabajo Correctiva (OTC)',otp:'Orden de Trabajo Preventiva (OTP)',plan:'Plan de Mantenimiento Preventivo'};
+  const nombres={ote:'Orden de Trabajo Externa (OTE)',otc:'Orden de Trabajo Correctiva (OTC)',otp:'Orden de Trabajo Preventiva (OTP)'};
   const nombre=nombres[tipo]||tipo.toUpperCase();
   g('pv-doc-nombre').textContent=nombre;
   g('pv-doc-cod').textContent='Código base: '+(c.cod||'—');
@@ -3401,17 +3292,16 @@ function printOT(idx){
   const num=o.num;
   const fecha='Emisión: '+(o.fecha||'—');
   const cod=o.cod||'';
-  const otp=o.otpEjecId?S.ejecucs.find(e=>e.id===o.otpEjecId):null;
   const infoHTML=
     pf('Equipo',o.eq)+
-    pf('Funcionario responsable',o.tec)+
+    pf('Técnico responsable',o.tec)+
     pf('Tipo',o.tipo)+
     pf('Prioridad',ppbPrio(o.prio))+
     pf('Estado',ppbEst(o.estado))+
     pf('Horas estimadas',o.hs?o.hs+' hs':'—')+
     pf('Hora de inicio',o.horaIni||'—')+
     pf('Hora de finalización',o.horaFin||'—')+
-    pf('OTP asociada',otp?otp.num:'—');
+    pf('','');
   const obsHTML='<div class="pp-sec">Observaciones / Cierre</div><div class="pp-box" style="min-height:36pt">'+(o.obs||'')+'</div>';
   const firmasHTML=
     firma('Funcionario','Nombre / Aclaración / Firma')+
@@ -3445,10 +3335,7 @@ function renderOTE(arr){
 function renderOT(arr){
   const tb=g('tb-ot');
   if(!arr.length){tb.innerHTML='<tr><td colspan="8"><div class="empty"><i class="ti ti-tool"></i>Sin órdenes.</div></td></tr>';return;}
-  tb.innerHTML=arr.map(o=>{const mi=S.ot.findIndex(x=>x.id===o.id);
-    const otp=o.otpEjecId?S.ejecucs.find(e=>e.id===o.otpEjecId):null;
-    const otpBadge=otp?'<div style="font-size:10px;color:#1D9E75;margin-top:2px;white-space:nowrap"><i class="ti ti-link" style="font-size:10px"></i> '+otp.num+'</div>':(o.otpEjecId?'<div style="font-size:10px;color:#aaa;margin-top:2px">OTP vinculada</div>':'');
-    return '<tr><td><span class="mono">'+o.num+'</span>'+otpBadge+'</td><td style="color:#888">'+o.fecha+'</td><td>'+(o.eq||'—')+'</td><td>'+(o.tec||'—')+'</td><td><span class="badge b-gray">'+o.tipo+'</span></td><td>'+bPrio(o.prio)+'</td><td>'+bEst(o.estado)+'</td><td style="white-space:nowrap"><button onclick="printOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button><button onclick="editOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button></td></tr>';
+  tb.innerHTML=arr.map(o=>{const mi=S.ot.findIndex(x=>x.id===o.id);return '<tr><td><span class="mono">'+o.num+'</span></td><td style="color:#888">'+o.fecha+'</td><td>'+(o.eq||'—')+'</td><td>'+(o.tec||'—')+'</td><td><span class="badge b-gray">'+o.tipo+'</span></td><td>'+bPrio(o.prio)+'</td><td>'+bEst(o.estado)+'</td><td style="white-space:nowrap"><button onclick="printOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button><button onclick="editOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button></td></tr>';
   }).join('');
 }
 function renderEq(arr){
@@ -4183,7 +4070,7 @@ function openEditTareaModal(idx){
   g('tar-dias').value  = t.diasCiclo||'';
   g('tar-fecha-ini').value = t.fechaIni||'';
   g('tar-tiempo').value = t.tiempo||'';
-  g('tar-tec').value   = t.tec||''; ensureSelectOption(g('tar-tec'),t.tec||'');
+  g('tar-tec').value   = t.tec||'';
   g('tar-umbral').value = (t.umbral!=null?t.umbral:t.hs)||'';
   g('tar-inst-cod').value = t.instCod||'';
   g('tar-inst-sel').value = t.instCod||'';
@@ -4263,7 +4150,7 @@ async function openEjecModal(idx){
   // v3.4: número desde la base (max+1); antes usaba el largo del cache.
   g('ejec-num').value=await nextNum('otp_ejecuciones','numero','OTP');
   g('ejec-fecha').value=tod();
-  g('ejec-tec').value=t.tec||''; ensureSelectOption(g('ejec-tec'),t.tec||'');
+  g('ejec-tec').value=t.tec||'';
   g('ejec-horas-eq').value='';
   g('ejec-obs').value='';
   g('ejec-insumos').value=t.insumos.map(i=>i.cant+' '+i.desc).join(', ');
@@ -4278,19 +4165,16 @@ function renderEjec(arr){
   const tb=g('tb-ejec');
   if(!arr.length){tb.innerHTML='<tr><td colspan="7"><div class="empty"><i class="ti ti-checks"></i>Sin ejecuciones.</div></td></tr>';return;}
   const estMap={'Completada':'b-green','Pendiente':'b-amber','Parcial':'b-blue','No realizada':'b-red'};
-  tb.innerHTML=arr.map((e,i)=>{
-    const otcsAsoc=S.ot.filter(o=>o.otpEjecId===e.id);
-    const otcBadge=otcsAsoc.length?'<div style="font-size:10px;color:#185FA5;margin-top:2px;white-space:nowrap"><i class="ti ti-link" style="font-size:10px"></i> '+otcsAsoc.map(o=>o.num).join(', ')+'</div>':'';
-    return '<tr>'
-    +'<td><span class="mono">'+e.num+'</span>'+otcBadge+'</td>'
+  tb.innerHTML=arr.map((e,i)=>'<tr>'
+    +'<td><span class="mono">'+e.num+'</span></td>'
     +'<td style="color:#888">'+e.fecha+'</td>'
     +'<td>'+e.equipo+'</td>'
     +'<td>'+e.desc+'</td>'
     +'<td>'+(e.tec||'—')+'</td>'
     +'<td><span class="badge '+(estMap[e.estado]||'b-gray')+'">'+e.estado+'</span></td>'
     +'<td><button class="btn-print" onclick="printPrevEjec('+i+')" title="Imprimir registro"><i class="ti ti-printer"></i></button></td>'
-    +'<td style="white-space:nowrap"><button onclick="printPrevEjec('+i+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button><button onclick="editEjec('+i+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button></td></tr>';
-  }).join('');
+    +'<td style="white-space:nowrap"><button onclick="printPrevEjec('+i+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button><button onclick="editEjec('+i+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button></td>'
+  ).join('');
 }
 
 // Filtros preventivo
@@ -4339,8 +4223,6 @@ function buildPrevPDF(tarea, ejec){
   const ejecHoras=ejec&&ejec.horasEq?ejec.horasEq+' hs':'';
   const ejecTec=ejec?ejec.tec:tarea.tec||'';
   const ejecObs=ejec?(ejec.obs||''):'';
-  const otcsAsoc=ejec?S.ot.filter(o=>o.otpEjecId===ejec.id):[];
-  const otcAsocTxt=otcsAsoc.length?otcsAsoc.map(o=>o.num).join(', '):'—';
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>OTP ${tarea.cod||''}</title>
@@ -4437,7 +4319,6 @@ body { font-family:Arial,Helvetica,sans-serif; font-size:11px; color:#1a1a18; ma
     <div class="prev-f"><div class="prev-fl">Fecha de ejecución</div><div class="prev-fv">${ejecFecha}</div></div>
     <div class="prev-f"><div class="prev-fl">Horas del equipo</div><div class="prev-fv">${ejecHoras}</div></div>
     <div class="prev-f"><div class="prev-fl">Funcionario</div><div class="prev-fv">${ejecTec}</div></div>
-    <div class="prev-f"><div class="prev-fl">OTC generadas</div><div class="prev-fv">${otcAsocTxt}</div></div>
   </div>
 
   <div class="prev-sec">Observaciones / Anomalías encontradas</div>
@@ -4951,113 +4832,6 @@ function parsePasos(texto){
   return pasos.slice(0,15); // máximo 15 pasos
 }
 
-// ══════════════════════════════════════
-// FUNCIONARIOS DE MANTENIMIENTO
-// ══════════════════════════════════════
-async function loadFuncionarios(){
-  const {data,error}=await sb.from('funcionarios').select('*').order('nombre');
-  if(error){dbErr(error,'cargar funcionarios');return;}
-  S.funcionarios=data.map(r=>({id:r.id,nombre:r.nombre,apellido:r.apellido,subsector:r.subsector,activo:r.activo!==false,nombreCompleto:(r.nombre+' '+r.apellido).trim()}));
-  renderFuncionarios(S.funcionarios);
-  populateFuncionarioSelects();
-}
-
-let editandoFuncionarioId=null;
-
-async function saveFuncionario(){
-  const nombre=v('func-nombre').trim();
-  const apellido=v('func-apellido').trim();
-  if(!nombre||!apellido){alert('Ingresá nombre y apellido.');return;}
-  const row={nombre,apellido,subsector:v('func-subsector').trim()||null,activo:v('func-activo')==='true'};
-  loading(true);
-  let error;
-  if(editandoFuncionarioId){
-    ({error}=await sb.from('funcionarios').update(row).eq('id',editandoFuncionarioId));
-  } else {
-    ({error}=await sb.from('funcionarios').insert(row));
-  }
-  loading(false);
-  if(error){dbErr(error,'guardar funcionario');return;}
-  editandoFuncionarioId=null;
-  closeModal('m-funcionario');
-  clr(['func-nombre','func-apellido','func-subsector']);
-  await loadFuncionarios();
-}
-
-function renderFuncionarios(arr){
-  const tb=g('tb-func');
-  if(!arr.length){tb.innerHTML='<tr><td colspan="5"><div class="empty"><i class="ti ti-users"></i>Sin funcionarios cargados.</div></td></tr>';return;}
-  tb.innerHTML=arr.map(f=>'<tr>'
-    +'<td>'+f.nombre+'</td>'
-    +'<td>'+f.apellido+'</td>'
-    +'<td style="color:#888;font-size:12px">'+(f.subsector||'—')+'</td>'
-    +'<td><span class="badge '+(f.activo?'b-green':'b-gray')+'">'+(f.activo?'Activo':'Inactivo')+'</span></td>'
-    +'<td style="white-space:nowrap">'
-      +'<button onclick="editFuncionario(\''+f.id+'\')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">Editar</button>'
-      +'<button onclick="deleteFuncionario(\''+f.id+'\')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit">Eliminar</button>'
-    +'</td>'
-    +'</tr>').join('');
-}
-
-function filterFuncionarios(){
-  const q=g('s-func').value.toLowerCase();
-  renderFuncionarios(S.funcionarios.filter(f=>!q||f.nombre.toLowerCase().includes(q)||f.apellido.toLowerCase().includes(q)||(f.subsector||'').toLowerCase().includes(q)));
-}
-
-function editFuncionario(id){
-  const f=S.funcionarios.find(x=>x.id===id);
-  if(!f) return;
-  editandoFuncionarioId=id;
-  g('m-funcionario').querySelector('.modal-title').textContent='Editar funcionario';
-  g('func-nombre').value=f.nombre;
-  g('func-apellido').value=f.apellido;
-  g('func-subsector').value=f.subsector||'';
-  g('func-activo').value=f.activo?'true':'false';
-  g('m-funcionario').classList.add('open');
-}
-
-async function deleteFuncionario(id){
-  const f=S.funcionarios.find(x=>x.id===id);
-  if(!f) return;
-  if(!confirm('¿Eliminar a '+f.nombre+' '+f.apellido+'? Las OTC, tareas y ejecuciones ya guardadas con su nombre no se modifican.')) return;
-  loading(true);
-  const {error}=await sb.from('funcionarios').delete().eq('id',id);
-  loading(false);
-  if(error){dbErr(error,'eliminar funcionario');return;}
-  await loadFuncionarios();
-}
-
-// Completa los desplegables de "Funcionario" (OTC, tarea preventiva, ejecución OTP)
-// con Nombre + Apellido de los funcionarios activos, preservando el valor actual.
-function populateFuncionarioSelects(){
-  ['ot-tec','tar-tec','ejec-tec'].forEach(id=>{
-    const sel=g(id);
-    if(!sel) return;
-    const cur=sel.value;
-    sel.innerHTML='<option value="">— seleccioná —</option>';
-    S.funcionarios.filter(f=>f.activo).forEach(f=>{
-      const o=document.createElement('option');
-      o.value=f.nombreCompleto;
-      o.textContent=f.nombreCompleto+(f.subsector?' — '+f.subsector:'');
-      sel.appendChild(o);
-    });
-    ensureSelectOption(sel,cur);
-  });
-}
-
-// Si el valor actual (de un registro viejo) no está entre las opciones, lo agrega
-// para no perder el dato al editar un registro cargado antes de tener la lista.
-function ensureSelectOption(sel,val){
-  if(!val) return;
-  const existe=[...sel.options].some(o=>o.value===val);
-  if(!existe){
-    const o=document.createElement('option');
-    o.value=val; o.textContent=val+' (fuera de lista)';
-    sel.appendChild(o);
-  }
-  sel.value=val;
-}
-
 // Importar instrucciones del Excel (las 60 del PRO.MANT.002)
 async function importInstFromExcel(){
   if(!confirm('¿Importar las instrucciones del Excel PRO.MANT.002? Esto creará o actualizará ~60 registros.')) return;
@@ -5336,11 +5110,16 @@ async function editOTE(idx){
 }
 
 async function editOT(idx){
-  const o=S.ot[idx];
+  const otcId=S.ot[idx].id;
+  // Traemos la versión más actual de esta OTC y de los reclamos antes de mostrar el formulario,
+  // para no pisar por accidente un cambio reciente hecho desde otro lugar (ej: reclamos.html)
+  await Promise.all([loadOTC(), loadReclamos()]);
+  const o=S.ot.find(x=>x.id===otcId);
+  if(!o){alert('Esta OTC ya no existe o fue eliminada.');return;}
   g('ot-num').value=o.num;
   g('ot-fecha').value=o.fecha||'';
   fillSel('ot-equipo',S.eq,'nom'); g('ot-equipo').value=o.eq||'';
-  populateFuncionarioSelects(); ensureSelectOption(g('ot-tec'),o.tec||'');
+  g('ot-tec').value=o.tec||'';
   g('ot-tipo').value=o.tipo||'Correctivo';
   g('ot-prio').value=o.prio||'Normal';
   g('ot-estado').value=o.estado||'Pendiente';
@@ -5349,12 +5128,11 @@ async function editOT(idx){
   g('ot-hora-fin').value=o.horaFin||'';
   g('ot-desc').value=o.desc||'';
   g('ot-obs').value=o.obs||'';
-  fillOtpSel(o.otpEjecId||'');
   updateCodDisplay('otc');
   const btn=g('m-ot').querySelector('.btn-primary');
   btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
   btn.onclick=async()=>{
-    const row={equipo:v('ot-equipo')||null,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:v('ot-estado'),horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
+    const row={equipo:v('ot-equipo')||null,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:v('ot-estado'),horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null};
     loading(true);
     const {error}=await sb.from('otc').update(row).eq('id',o.id);
     loading(false);
@@ -5383,7 +5161,7 @@ async function editEjec(idx){
   const e=S.ejecucs[idx];
   g('ejec-num').value=e.num;
   g('ejec-fecha').value=e.fecha||'';
-  g('ejec-tec').value=e.tec||''; ensureSelectOption(g('ejec-tec'),e.tec||'');
+  g('ejec-tec').value=e.tec||'';
   g('ejec-horas-eq').value=e.horasEq||'';
   g('ejec-estado').value=e.estado||'Completada';
   g('ejec-obs').value=e.obs||'';
@@ -5724,8 +5502,7 @@ async function generarReporteIntervenciones() {
           tecnico: r.tecnico, tipo_trabajo: r.tipo,
           prioridad: r.prioridad, horas: r.horas_est,
           hora_ini: r.hora_ini, hora_fin: r.hora_fin,
-          obs: r.observaciones,
-          otpNum: r.otp_ejec_id ? ((S.ejecucs.find(x => x.id === r.otp_ejec_id) || {}).num || null) : null
+          obs: r.observaciones
         }
       }));
     }
@@ -5845,11 +5622,10 @@ function imprimirReporte() {
     if (r.tipo === 'OTC') {
       const lineas = [
         e.tipo_trabajo ? `<b>Tipo:</b> ${e.tipo_trabajo}` : '',
-        e.tecnico ? `<b>Funcionario:</b> ${e.tecnico}` : '',
+        e.tecnico ? `<b>Técnico:</b> ${e.tecnico}` : '',
         e.prioridad ? `<b>Prioridad:</b> ${e.prioridad}` : '',
         e.horas ? `<b>Horas est.:</b> ${e.horas}` : '',
         (e.hora_ini && e.hora_fin) ? `<b>Horario:</b> ${e.hora_ini} – ${e.hora_fin}` : '',
-        e.otpNum ? `<b>OTP asociada:</b> ${e.otpNum}` : '',
       ].filter(Boolean);
       const obs = e.obs ? `<div style="margin-top:3pt;color:#777;font-style:italic;font-size:8.5pt"><b>Obs.:</b> ${e.obs}</div>` : '';
       return (lineas.length ? `<div style="margin-top:4pt;color:#555;font-size:8.5pt">${lineas.join(' &nbsp;·&nbsp; ')}</div>` : '') + obs;
@@ -5857,7 +5633,7 @@ function imprimirReporte() {
     if (r.tipo === 'OTP') {
       const lineas = [
         e.tarea_cod ? `<b>Tarea:</b> ${e.tarea_cod}` : '',
-        e.tecnico ? `<b>Funcionario:</b> ${e.tecnico}` : '',
+        e.tecnico ? `<b>Técnico:</b> ${e.tecnico}` : '',
         e.horas_eq ? `<b>Horas equipo:</b> ${e.horas_eq}` : '',
       ].filter(Boolean);
       const obs = e.obs ? `<div style="margin-top:3pt;color:#777;font-style:italic;font-size:8.5pt"><b>Obs.:</b> ${e.obs}</div>` : '';
@@ -5955,38 +5731,22 @@ function cerrarReportePrint() {
 // ══════════════════════════════════════
 // REPORTE: PLAN DE MANTENIMIENTO PREVENTIVO
 // ══════════════════════════════════════
-// Fetch + agrupación de tareas e instrucciones — usado por el preview de Reportes y por el documento controlado
-async function fetchPlanTareasInstr(){
+async function generarReportePlanPreventivo(){
+  loading(true,'Generando plan preventivo...');
+
+  // Cargar tareas con inst_cod
   const {data:tarData, error:tarErr} = await sb.from('otp_tareas').select('*').order('equipo,codigo');
-  if(tarErr) return {error:tarErr};
+  if(tarErr){loading(false);dbErr(tarErr,'cargar tareas');return;}
+
+  // Cargar instrucciones (solo las usadas)
   const {data:instData, error:instErr} = await sb.from('instrucciones_mant').select('*');
-  if(instErr) return {error:instErr};
+  if(instErr){loading(false);dbErr(instErr,'cargar instrucciones');return;}
+
+  loading(false);
 
   const tareas = tarData||[];
   const instMap = {};
   (instData||[]).forEach(i=>{ instMap[i.codigo]={resumen:i.resumen,proc:i.procedimiento||''}; });
-
-  const grupos = {};
-  tareas.forEach(t=>{
-    const eq = t.equipo||'(sin equipo)';
-    if(!grupos[eq]) grupos[eq]=[];
-    grupos[eq].push(t);
-  });
-
-  const cEq = Object.keys(grupos).length;
-  const cTar = tareas.length;
-  const cCal = tareas.filter(t=>!t.intervalo_hs).length;
-  const cHs  = tareas.filter(t=>!!t.intervalo_hs).length;
-
-  return {tareas, instMap, grupos, cEq, cTar, cCal, cHs};
-}
-
-async function generarReportePlanPreventivo(){
-  loading(true,'Generando plan preventivo...');
-  const r = await fetchPlanTareasInstr();
-  loading(false);
-  if(r.error){dbErr(r.error,'cargar plan preventivo');return;}
-  const {tareas, instMap, grupos, cEq, cTar, cCal, cHs} = r;
 
   const preview = g('rpp-preview');
   const empty   = g('rpp-empty');
@@ -6000,7 +5760,19 @@ async function generarReportePlanPreventivo(){
   empty.style.display='none';
   preview.style.display='block';
 
+  // Agrupar por equipo
+  const grupos = {};
+  tareas.forEach(t=>{
+    const eq = t.equipo||'(sin equipo)';
+    if(!grupos[eq]) grupos[eq]=[];
+    grupos[eq].push(t);
+  });
+
   // Resumen
+  const cEq = Object.keys(grupos).length;
+  const cTar = tareas.length;
+  const cCal = tareas.filter(t=>!t.intervalo_hs).length;
+  const cHs  = tareas.filter(t=>!!t.intervalo_hs).length;
   g('rpp-resumen-txt').textContent = `${cEq} equipo${cEq!==1?'s':''} · ${cTar} tarea${cTar!==1?'s':''} · ${cCal} calendario · ${cHs} horómetro`;
 
   // Preview en pantalla
@@ -6044,16 +5816,20 @@ async function generarReportePlanPreventivo(){
   window._rppData = {grupos, instMap, cEq, cTar, cCal, cHs};
 }
 
-function buildPlanReportHTML(d, opts){
-  opts = opts||{};
+function imprimirPlanPreventivo(){
+  const d = window._rppData;
+  if(!d) return;
   const {grupos, instMap, cEq, cTar, cCal, cHs} = d;
   const hoy = new Date().toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',year:'numeric'});
   const anio = new Date().getFullYear();
-  const cfgPlan = S.docConfig['plan']||{cod:'',rev:''};
-  const codLabel = cfgPlan.cod ? (cfgPlan.cod+(cfgPlan.rev?' '+cfgPlan.rev:'')) : '';
 
-  // Recopilar tareas con pasos definidos en el plan (glosario tomado de las tareas, no de la biblioteca)
-  const tareasConPasos = Object.values(grupos).flat().filter(t=>Array.isArray(t.checks) && t.checks.length);
+  // Recopilar instrucciones usadas (sin duplicados)
+  const instUsadas = {};
+  Object.values(grupos).flat().forEach(t=>{
+    if(t.inst_cod && instMap[t.inst_cod] && !instUsadas[t.inst_cod]){
+      instUsadas[t.inst_cod] = instMap[t.inst_cod];
+    }
+  });
 
   // Filas del cuerpo por equipo
   let filas = '';
@@ -6088,42 +5864,25 @@ function buildPlanReportHTML(d, opts){
       </div>`;
   });
 
-  // Glosario de instrucciones — tomado de los pasos definidos en cada tarea del plan
+  // Glosario de instrucciones usadas
+  const instKeys = Object.keys(instUsadas).sort();
   let glosario = '';
-  if(tareasConPasos.length){
+  if(instKeys.length){
     glosario = `
       <div style="margin-top:20pt;border-top:1.5pt solid #1D9E75;padding-top:12pt;break-before:page">
         <div style="font-size:11pt;font-weight:700;margin-bottom:10pt;color:#1a1a18">Descripción de instrucciones de mantenimiento</div>
-        ${tareasConPasos.map(t=>{
-          const pasos = t.checks||[];
-          const instCod = t.inst_cod||'';
+        ${instKeys.map(cod=>{
+          const inst = instUsadas[cod];
+          const pasos = inst.proc ? inst.proc.split(/\.\s+|\n/).map(s=>s.trim()).filter(s=>s.length>15).slice(0,12) : [];
           return `<div style="margin-bottom:10pt;break-inside:avoid">
-            <div style="font-family:monospace;font-size:9pt;font-weight:700;color:#7B4FBE;margin-bottom:2pt">${t.codigo||'—'}${instCod?` (${instCod})`:''} — ${t.descripcion||''}</div>
-            <ol style="margin:0;padding-left:16pt;font-size:8pt;color:#444;line-height:1.6">
-              ${pasos.map(p=>`<li>${p}</li>`).join('')}
-            </ol>
+            <div style="font-family:monospace;font-size:9pt;font-weight:700;color:#7B4FBE;margin-bottom:2pt">${cod} — ${inst.resumen}</div>
+            ${pasos.length?`<ol style="margin:0;padding-left:16pt;font-size:8pt;color:#444;line-height:1.6">
+              ${pasos.map(p=>`<li>${p.replace(/^\d+[\-\.\)]\s*/,'')}</li>`).join('')}
+            </ol>`:`<div style="font-size:8pt;color:#888;font-style:italic">${inst.proc||'Sin procedimiento detallado.'}</div>`}
           </div>`;
         }).join('')}
       </div>`;
   }
-
-  // Firmas — solo para el documento controlado (Control de Versiones)
-  const firmas = opts.conFirmas ? `
-    <div style="margin-top:20pt;border-top:1pt solid #ccc;padding-top:14pt;break-inside:avoid">
-      <div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.5pt;color:#777;margin-bottom:14pt">Firmas</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24pt">
-        <div style="text-align:center">
-          <div style="border-bottom:1.5pt solid #333;height:28pt"></div>
-          <div style="font-size:8pt;font-weight:700;text-transform:uppercase;color:#444;margin-top:4pt">Elaborado por</div>
-          <div style="font-size:7pt;color:#aaa">Nombre / Aclaración / Firma</div>
-        </div>
-        <div style="text-align:center">
-          <div style="border-bottom:1.5pt solid #333;height:28pt"></div>
-          <div style="font-size:8pt;font-weight:700;text-transform:uppercase;color:#444;margin-top:4pt">Jefe de Mantenimiento</div>
-          <div style="font-size:7pt;color:#aaa">Aprobación</div>
-        </div>
-      </div>
-    </div>` : '';
 
   const html = `<!DOCTYPE html>
 <html>
@@ -6150,49 +5909,27 @@ function buildPlanReportHTML(d, opts){
         <div style="width:48pt;height:48pt;background:#1D9E75;border-radius:8pt;display:flex;align-items:center;justify-content:center;font-size:20pt;font-weight:800;color:#fff;text-align:center;line-height:48pt">CA</div>
       </td>
       <td style="padding-left:10pt">
-        <div style="font-size:13pt;font-weight:700;margin-bottom:2pt">Plan de Mantenimiento Preventivo ${anio}${opts.conFirmas?' <span style="font-size:8pt;font-weight:400;color:#888">— documento controlado</span>':''}</div>
+        <div style="font-size:13pt;font-weight:700;margin-bottom:2pt">Plan de Mantenimiento Preventivo ${anio}</div>
         <div style="font-size:8.5pt;color:#555">CALCAR · NOFROCK SAS &nbsp;·&nbsp; Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay</div>
         <div style="font-size:8pt;color:#888;margin-top:2pt">Emisión: ${hoy} &nbsp;·&nbsp; ${cEq} equipo${cEq!==1?'s':''} · ${cTar} tarea${cTar!==1?'s':''} · ${cCal} calendario · ${cHs} horómetro</div>
-        ${codLabel?`<div style="font-size:8pt;color:#0a5c3e;margin-top:2pt;font-family:'Courier New',monospace;font-weight:700">Cod: ${codLabel}</div>`:''}
       </td>
     </tr>
   </table>
 
   ${filas}
   ${glosario}
-  ${firmas}
 
   <div style="margin-top:14pt;border-top:0.5pt solid #ccc;padding-top:6pt;font-size:7.5pt;color:#aaa;display:flex;justify-content:space-between">
-    <span>CALCAR · Plan de Mantenimiento Preventivo ${anio}${codLabel?' · '+codLabel:''}</span>
+    <span>CALCAR · Plan de Mantenimiento Preventivo ${anio}</span>
     <span>Generado: ${hoy}</span>
   </div>
 </body>
 </html>`;
 
-  return html;
-}
-
-function abrirVentanaPlan(html){
   const ventana = window.open('','_blank','width=900,height=700');
   if(!ventana){alert('El navegador bloqueó la ventana del reporte. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   ventana.document.write(html);
   ventana.document.close();
-}
-
-function imprimirPlanPreventivo(){
-  const d = window._rppData;
-  if(!d) return;
-  abrirVentanaPlan(buildPlanReportHTML(d,{conFirmas:false}));
-}
-
-async function imprimirPlanControlado(){
-  loading(true,'Generando documento del plan...');
-  const r = await fetchPlanTareasInstr();
-  loading(false);
-  if(r.error){dbErr(r.error,'cargar plan preventivo');return;}
-  if(!r.tareas.length){alert('No hay tareas cargadas en el plan preventivo todavía.');return;}
-  const {grupos, instMap, cEq, cTar, cCal, cHs} = r;
-  abrirVentanaPlan(buildPlanReportHTML({grupos, instMap, cEq, cTar, cCal, cHs},{conFirmas:true}));
 }
 
 
