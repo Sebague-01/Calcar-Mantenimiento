@@ -201,6 +201,10 @@
     <label for="reportante">Nombre de quien reporta *</label>
     <input type="text" id="reportante" required placeholder="Nombre y apellido">
 
+    <label for="foto">Foto <span style="font-weight:400;color:#888">(opcional)</span></label>
+    <input type="file" id="foto" accept="image/*" capture="environment">
+    <div id="fotoPreview" style="margin-top:8px"></div>
+
     <button type="submit" id="btnSubmit">Enviar reclamo</button>
   </form>
 
@@ -228,6 +232,41 @@
   const form = document.getElementById('formReclamo');
   const btn = document.getElementById('btnSubmit');
 
+  // ── Preview de la foto elegida ──
+  document.getElementById('foto').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const preview = document.getElementById('fotoPreview');
+    if (!file) { preview.innerHTML = ''; return; }
+    const url = URL.createObjectURL(file);
+    preview.innerHTML = '<img src="' + url + '" style="max-width:140px;max-height:140px;border-radius:6px;border:1px solid #ddd;object-fit:cover">';
+  });
+
+  // Comprime/redimensiona la imagen en el navegador antes de subirla (para no llenar el storage con fotos de 8-12MB del celular)
+  function comprimirImagen(file, maxAncho = 1600, calidad = 0.72) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxAncho) {
+            height = Math.round(height * (maxAncho / width));
+            width = maxAncho;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('No se pudo procesar la imagen')), 'image/jpeg', calidad);
+        };
+        img.onerror = () => reject(new Error('No se pudo leer la imagen'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     btn.disabled = true;
@@ -238,10 +277,32 @@
     const descripcion = document.getElementById('descripcion').value;
     const prioridad = document.querySelector('input[name="prioridad"]:checked')?.value;
     const reportado_por = document.getElementById('reportante').value;
+    const archivoFoto = document.getElementById('foto').files[0];
+
+    let foto_url = null;
+    if (archivoFoto) {
+      try {
+        btn.textContent = 'Subiendo foto...';
+        const blob = await comprimirImagen(archivoFoto);
+        const nombreArchivo = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.jpg';
+        const { error: errUpload } = await sb.storage.from('reclamos-fotos').upload(nombreArchivo, blob, { contentType: 'image/jpeg' });
+        if (errUpload) {
+          console.error('Error subiendo foto:', errUpload);
+          alert('No se pudo subir la foto (el reclamo se va a enviar igual, sin la foto).');
+        } else {
+          const { data: urlData } = sb.storage.from('reclamos-fotos').getPublicUrl(nombreArchivo);
+          foto_url = urlData.publicUrl;
+        }
+      } catch (err) {
+        console.error('Error procesando la foto:', err);
+        alert('No se pudo procesar la foto (el reclamo se va a enviar igual, sin la foto).');
+      }
+      btn.textContent = 'Enviando...';
+    }
 
     const { data, error } = await sb
       .from('reclamos')
-      .insert([{ sector, equipo_ubicacion, descripcion, prioridad, reportado_por }])
+      .insert([{ sector, equipo_ubicacion, descripcion, prioridad, reportado_por, foto_url }])
       .select();
 
     if (error) {
@@ -344,6 +405,7 @@
         <div><b>Sector:</b> ${r.sector}</div>
         <div><b>Descripción:</b> ${r.descripcion}</div>
         <div><b>Estado actual:</b> <span class="estado-pill" style="background:${estiloEstado}">${r.estado}</span></div>
+        ${r.foto_url ? '<div style="margin-top:8px"><img src="' + r.foto_url + '" style="max-width:100%;max-height:220px;border-radius:6px;border:1px solid #ddd"></div>' : ''}
       </div>
     `;
 
@@ -495,6 +557,8 @@
           <tr><td class="label">Descripción</td><td class="valor">${reclamo.descripcion}</td></tr>
           <tr><td class="label">Estado</td><td class="valor">${reclamo.estado}</td></tr>
         </table>
+
+        ${reclamo.foto_url ? '<div style="margin-top:18px"><div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px">Foto adjunta</div><img src="' + reclamo.foto_url + '" style="max-width:100%;max-height:300px;border-radius:6px;border:1px solid #ddd"></div>' : ''}
 
         <div class="footer">
           Ruta 50 Km 21,500 — Tarariras, Colonia, Uruguay<br>

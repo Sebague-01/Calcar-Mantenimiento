@@ -2459,7 +2459,8 @@ async function loadReclamos(q='',est=''){
     id:r.id,num:r.numero,fecha:r.created_at,sector:r.sector,eqUbic:r.equipo_ubicacion,
     desc:r.descripcion,prio:r.prioridad,reportante:r.reportado_por,estado:r.estado,
     tomadoPor:r.tomado_por,otcId:r.otc_id,motivoRechazo:r.motivo_rechazo,
-    conformidad:r.conformidad,motivoNoConforme:r.motivo_no_conforme,vecesReabierto:r.veces_reabierto
+    conformidad:r.conformidad,motivoNoConforme:r.motivo_no_conforme,vecesReabierto:r.veces_reabierto,
+    fotoUrl:r.foto_url
   }));
   renderReclamos(S.reclamos);
   const pend=S.reclamos.filter(r=>r.estado==='Pendiente').length;
@@ -2482,6 +2483,9 @@ function renderReclamos(arr){
     const mi=S.reclamos.findIndex(x=>x.id===r.id);
     const fecha=r.fecha?new Date(r.fecha).toLocaleDateString('es-UY'):'—';
     let acciones='<button onclick="imprimirReclamo('+mi+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button>';
+    if(r.fotoUrl){
+      acciones+='<a href="'+r.fotoUrl+'" target="_blank" style="padding:3px 8px;border-radius:6px;background:#f4f4f2;border:1px solid #ddd;cursor:pointer;color:#555;font-size:11px;font-weight:600;font-family:inherit;text-decoration:none;margin-right:3px;display:inline-block">📷 Foto</a>';
+    }
     if(r.estado==='Pendiente'){
       acciones+='<button onclick="tomarReclamo('+mi+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">Tomar</button>';
       acciones+='<button onclick="rechazarReclamo('+mi+')" style="padding:3px 8px;border-radius:6px;background:#f4f4f2;border:1px solid #ddd;cursor:pointer;color:#888;font-size:11px;font-weight:600;font-family:inherit">Rechazar</button>';
@@ -2586,8 +2590,9 @@ function imprimirReclamo(idx){
   const r=S.reclamos[idx];
   const fecha='Emisión: '+(r.fecha?new Date(r.fecha).toLocaleDateString('es-UY'):'—');
   const infoHTML=pf('Sector',r.sector)+pf('Equipo / Ubicación',r.eqUbic)+pf('Prioridad',r.prio)+pf('Reportado por',r.reportante)+pf('Estado',r.estado)+pf('',''); 
+  const fotoHTML=r.fotoUrl ? '<div class="pp-sec">Foto adjunta</div><img src="'+r.fotoUrl+'" style="max-width:100%;max-height:300px;border-radius:6px;border:1px solid #ddd">' : '';
   const firmasHTML=firma('Recibido por','Nombre / Aclaración');
-  const html=buildOTPdf('Reclamo Interno','reclamo',r.num,fecha,'',infoHTML,r.desc,'',firmasHTML);
+  const html=buildOTPdf('Reclamo Interno','reclamo',r.num,fecha,'',infoHTML,r.desc,fotoHTML,firmasHTML);
   const w=window.open('','_blank');
   if(!w){alert('El navegador bloqueó la ventana del PDF. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   w.document.write(html);
