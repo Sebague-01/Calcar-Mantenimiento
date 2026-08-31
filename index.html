@@ -458,6 +458,10 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           <option>Pendiente</option><option>Tomado</option><option>Convertido</option>
           <option>Pendiente de Conformidad</option><option>Cerrado</option><option>Rechazado</option>
         </select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#555;cursor:pointer">
+          <input type="checkbox" id="f-reclamo-ministerial" onchange="filterReclamos()" style="width:auto">
+          🏛 Solo observaciones ministeriales
+        </label>
       </div>
       <button class="btn-sec" onclick="loadReclamos()"><i class="ti ti-refresh"></i> Actualizar</button>
     </div>
@@ -2436,17 +2440,20 @@ async function filterOT(){
 // ══════════════════════════════════════
 // RECLAMOS — bandeja de entrada
 // ══════════════════════════════════════
-async function loadReclamos(q='',est=''){
+async function loadReclamos(q='',est='',soloMinisterial=false){
   let query=sb.from('reclamos').select('*').order('created_at',{ascending:false});
   if(est) query=query.eq('estado',est);
+  if(soloMinisterial) query=query.eq('es_observacion_ministerial',true);
   if(q) query=query.or('numero.ilike.%'+q+'%,sector.ilike.%'+q+'%,equipo_ubicacion.ilike.%'+q+'%,reportado_por.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar reclamos');return;}
 
   // Autocierre: reclamos "Pendiente de Conformidad" hace más de 15 días sin respuesta del sector
+  // (las observaciones ministeriales quedan exentas: alguien las tiene que cerrar a mano)
   const LIMITE_DIAS=15;
   const ahora=Date.now();
   const vencidos=data.filter(r=>r.estado==='Pendiente de Conformidad' && r.fecha_pendiente_conformidad &&
+    !r.es_observacion_ministerial &&
     (ahora-new Date(r.fecha_pendiente_conformidad).getTime())/86400000 >= LIMITE_DIAS);
   if(vencidos.length){
     await Promise.all(vencidos.map(r=>sb.from('reclamos').update({
@@ -2460,7 +2467,7 @@ async function loadReclamos(q='',est=''){
     desc:r.descripcion,prio:r.prioridad,reportante:r.reportado_por,estado:r.estado,
     tomadoPor:r.tomado_por,otcId:r.otc_id,motivoRechazo:r.motivo_rechazo,
     conformidad:r.conformidad,motivoNoConforme:r.motivo_no_conforme,vecesReabierto:r.veces_reabierto,
-    fotoUrl:r.foto_url
+    fotoUrl:r.foto_url,esMinisterial:r.es_observacion_ministerial,refMinisterial:r.referencia_ministerial
   }));
   renderReclamos(S.reclamos);
   const pend=S.reclamos.filter(r=>r.estado==='Pendiente').length;
@@ -2470,7 +2477,8 @@ async function loadReclamos(q='',est=''){
 
 async function filterReclamos(){
   const q=g('s-reclamo').value.toLowerCase(), est=g('f-reclamo-est').value;
-  await loadReclamos(q,est);
+  const soloMinisterial=g('f-reclamo-ministerial').checked;
+  await loadReclamos(q,est,soloMinisterial);
 }
 
 function bEstReclamo(e){const m={'Pendiente':'b-amber','Tomado':'b-blue','Convertido':'b-green','Pendiente de Conformidad':'b-amber','Cerrado':'b-green','Rechazado':'b-red'};return '<span class="badge '+(m[e]||'b-gray')+'">'+e+'</span>';}
@@ -2516,7 +2524,7 @@ function renderReclamos(arr){
     } else if(r.estado==='Rechazado' && r.motivoRechazo){
       acciones+='<span style="font-size:11px;color:#aaa" title="'+r.motivoRechazo.replace(/"/g,'')+'">(ver motivo)</span>';
     }
-    return '<tr><td><span class="mono">'+r.num+'</span></td><td style="color:#888">'+fecha+'</td><td>'+(r.sector||'—')+'</td><td>'+(r.eqUbic||'—')+'</td><td>'+bPrioReclamo(r.prio)+'</td><td>'+(r.reportante||'—')+'</td><td>'+bEstReclamo(r.estado)+'</td><td style="white-space:nowrap">'+acciones+'</td></tr>';
+    return '<tr><td><span class="mono">'+r.num+'</span></td><td style="color:#888">'+fecha+'</td><td>'+(r.sector||'—')+'</td><td>'+(r.eqUbic||'—')+'</td><td>'+bPrioReclamo(r.prio)+(r.esMinisterial?' <span class="badge" style="background:#f7f4ec;color:#8a6d00;border:1px solid #e3d9be" title="'+(r.refMinisterial||'Observación ministerial').replace(/"/g,'')+'">🏛 Ministerial</span>':'')+'</td><td>'+(r.reportante||'—')+'</td><td>'+bEstReclamo(r.estado)+'</td><td style="white-space:nowrap">'+acciones+'</td></tr>';
   }).join('');
 }
 
@@ -2589,7 +2597,7 @@ async function marcarConformidad(idx, conforme){
 function imprimirReclamo(idx){
   const r=S.reclamos[idx];
   const fecha='Emisión: '+(r.fecha?new Date(r.fecha).toLocaleDateString('es-UY'):'—');
-  const infoHTML=pf('Sector',r.sector)+pf('Equipo / Ubicación',r.eqUbic)+pf('Prioridad',r.prio)+pf('Reportado por',r.reportante)+pf('Estado',r.estado)+pf('',''); 
+  const infoHTML=pf('Sector',r.sector)+pf('Equipo / Ubicación',r.eqUbic)+pf('Prioridad',r.prio)+pf('Reportado por',r.reportante)+pf('Estado',r.estado)+(r.esMinisterial?pf('Observación ministerial',r.refMinisterial||'Sí'):'')+pf('',''); 
   const fotoHTML=r.fotoUrl ? '<div class="pp-sec">Foto adjunta</div><img src="'+r.fotoUrl+'" style="max-width:100%;max-height:300px;border-radius:6px;border:1px solid #ddd">' : '';
   const firmasHTML=firma('Recibido por','Nombre / Aclaración');
   const html=buildOTPdf('Reclamo Interno','reclamo',r.num,fecha,'',infoHTML,r.desc,fotoHTML,firmasHTML);
