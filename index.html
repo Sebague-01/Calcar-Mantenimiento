@@ -3365,7 +3365,7 @@ function printVersionSheet(tipo){
 
 // Print OTE
 // Construye el HTML autocontenido para OTE/OTC (mismo patrón que OC/OTP)
-function buildOTPdf(tipoLbl, codConfigKey, num, fecha, cod, infoHTML, desc, obsHTML, firmasHTML){
+function buildOTPdf(tipoLbl, codConfigKey, num, fecha, cod, infoHTML, desc, obsHTML, firmasHTML, insumosHTML=''){
   const wmTxt=num;
   const footerTxt=num+(cod?' · '+cod:'')+' · '+new Date().toLocaleDateString('es-UY');
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -3392,6 +3392,9 @@ body { font-family:Arial,Helvetica,sans-serif; font-size:11px; color:#1a1a18; ma
 .pp-fl { font-size:8pt; color:#888; font-weight:700; text-transform:uppercase; }
 .pp-fv { font-size:10pt; font-weight:500; border-bottom:1pt solid #e0e0e0; padding-bottom:2pt; min-height:14pt; }
 .pp-box { border:1pt solid #ddd; border-radius:3pt; padding:6pt 8pt; min-height:48pt; font-size:10pt; line-height:1.5; margin-bottom:4pt; }
+.pp-ins-table { width:100%; border-collapse:collapse; font-size:9pt; margin-bottom:4pt; }
+.pp-ins-table th { text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:.3pt; color:#777; border-bottom:1pt solid #999; padding:3pt 6pt; }
+.pp-ins-table td { padding:3pt 6pt; border-bottom:0.5pt solid #e5e5e5; }
 .pp-firmas { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14pt; margin-top:12pt; }
 .pp-firma { display:flex; flex-direction:column; align-items:center; gap:4pt; }
 .pp-firma-line { width:100%; border-bottom:1.5pt solid #333; height:28pt; }
@@ -3434,6 +3437,7 @@ body { font-family:Arial,Helvetica,sans-serif; font-size:11px; color:#1a1a18; ma
   <div class="pp-sec">Descripción del trabajo</div>
   <div class="pp-box">${desc||'(sin descripción)'}</div>
   ${obsHTML}
+  ${insumosHTML}
   <div class="pp-wm">${wmTxt}</div>
   <div class="pp-sec" style="margin-top:12pt">Aprobaciones y firmas</div>
   <div class="pp-firmas">${firmasHTML}</div>
@@ -3460,7 +3464,7 @@ function printOTE(idx){
 }
 
 // Print OT
-function printOT(idx){
+async function printOT(idx){
   const o=S.ot[idx];
   const num=o.num;
   const fecha='Emisión: '+(o.fecha||'—');
@@ -3480,11 +3484,27 @@ function printOT(idx){
   const firmasHTML=
     firma('Funcionario','Nombre / Aclaración / Firma')+
     firma('Supervisor Mantenimiento','Nombre / Aclaración / Firma');
-  const html=buildOTPdf('Orden de Trabajo Correctiva','otc',num,fecha,cod,infoHTML,o.desc,obsHTML,firmasHTML);
+  const insumosHTML=await buildInsumosPdfHTML('OTC',o.id);
+  const html=buildOTPdf('Orden de Trabajo Correctiva','otc',num,fecha,cod,infoHTML,o.desc,obsHTML,firmasHTML,insumosHTML);
   const w=window.open('','_blank');
   if(!w){alert('El navegador bloqueó la ventana del PDF. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   w.document.write(html);
   w.document.close();
+}
+
+// Arma la tabla de "Insumos usados" para el PDF, leyendo directo de
+// stock_movimientos (misma fuente que la ficha de Insumos del equipo).
+// Devuelve '' si no hay insumos, para no mostrar una sección vacía.
+async function buildInsumosPdfHTML(otTipo,otId){
+  if(!otId) return '';
+  const {data,error}=await sb.from('stock_movimientos').select('*').eq('ot_origen_tipo',otTipo).eq('ot_origen_id',otId).order('fecha',{ascending:true});
+  if(error||!data||!data.length) return '';
+  const filas=data.map(r=>
+    '<tr><td>'+(r.descripcion||r.item_cod||'—')+'</td><td class="mono">'+(r.item_cod||'—')+'</td><td>'+r.cantidad+' '+(r.unidad||'')+'</td><td>'+(r.fecha||'—')+'</td></tr>'
+  ).join('');
+  return '<div class="pp-sec">Insumos usados</div>'
+    +'<table class="pp-ins-table"><thead><tr><th>Insumo</th><th>Código</th><th>Cantidad</th><th>Fecha</th></tr></thead><tbody>'
+    +filas+'</tbody></table>';
 }
 
 // Badges pantalla
