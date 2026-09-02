@@ -1228,6 +1228,22 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   </div>
 </div>
 
+<!-- INSUMOS DEL EQUIPO -->
+<div class="modal-overlay" id="m-eq-insumos">
+  <div class="modal-box" style="width:720px">
+    <div class="modal-header">
+      <div class="modal-title">Insumos — <span id="eqi-nombre"></span></div>
+      <button class="modal-close" onclick="closeModal('m-eq-insumos')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="eqi-contenido" style="max-height:65vh;overflow-y:auto">
+      <div class="empty"><i class="ti ti-loader"></i>Cargando...</div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-sec" onclick="closeModal('m-eq-insumos')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- PROVEEDOR -->
 <div class="modal-overlay" id="m-proveedor">
   <div class="modal-box narrow">
@@ -3515,11 +3531,69 @@ function renderEq(arr){
       +'<td><span class="badge '+(estMap[e.estado]||'b-gray')+'">'+(e.estado||'Activo')+'</span></td>'
       +'<td style="white-space:nowrap">'
         +'<button onclick="editEq('+mi+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">Editar</button>'
+        +'<button onclick="verInsumosEquipo('+mi+')" style="padding:3px 8px;border-radius:6px;background:#f0fbf6;border:1px solid #a8dfc8;cursor:pointer;color:#1f7a4d;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">Insumos</button>'
         +'<button onclick="deleteEq('+mi+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit">Eliminar</button>'
       +'</td>'
       +'</tr>';
   }).join('');
 }
+
+// ══════════════════════════════════════
+// Insumos por equipo — resumen + historial expandible
+// Lee directo de stock_movimientos filtrando por equipo_id.
+// No hay tabla nueva: todo sale de los movimientos ya generados
+// desde las OT (ver consumirInsumosOT).
+// ══════════════════════════════════════
+let eqiHistorialPorItem={};
+async function verInsumosEquipo(idx){
+  const eq=S.eq[idx];
+  g('eqi-nombre').textContent=eq.cod+' — '+eq.nom;
+  g('eqi-contenido').innerHTML='<div class="empty"><i class="ti ti-loader"></i>Cargando...</div>';
+  g('m-eq-insumos').classList.add('open');
+  const {data,error}=await sb.from('stock_movimientos').select('*').eq('equipo_id',eq.id).order('fecha',{ascending:false});
+  if(error){dbErr(error,'cargar insumos del equipo');g('eqi-contenido').innerHTML='<div class="empty">No se pudo cargar.</div>';return;}
+  if(!data.length){
+    g('eqi-contenido').innerHTML='<div class="empty"><i class="ti ti-package"></i>Todavía no se registró ningún insumo para este equipo.<br><span style="font-size:12px;color:#aaa">Se completa automáticamente al cerrar una OT con insumos usados.</span></div>';
+    return;
+  }
+  // Agrupar por item_cod para el resumen (último movimiento por ítem)
+  const porItem={};
+  data.forEach(r=>{
+    const cod=r.item_cod||'—';
+    if(!porItem[cod]) porItem[cod]={cod,desc:r.descripcion,unidad:r.unidad,historial:[]};
+    porItem[cod].historial.push({fecha:r.fecha,cant:r.cantidad,tipo:r.tipo,ref:r.referencia,otTipo:r.ot_origen_tipo});
+  });
+  eqiHistorialPorItem=porItem;
+  const items=Object.values(porItem).sort((a,b)=>(b.historial[0]?.fecha||'').localeCompare(a.historial[0]?.fecha||''));
+  g('eqi-contenido').innerHTML='<table class="data-table"><thead><tr>'
+    +'<th>Insumo</th><th>Último cambio</th><th>Cant.</th><th>Veces</th><th></th>'
+    +'</tr></thead><tbody>'
+    +items.map(it=>{
+      const ult=it.historial[0];
+      const key=it.cod.replace(/[^a-zA-Z0-9]/g,'_');
+      return '<tr>'
+        +'<td>'+(it.desc||it.cod)+' <span class="mono" style="color:#aaa;font-size:11px">'+it.cod+'</span></td>'
+        +'<td>'+(ult.fecha||'—')+'</td>'
+        +'<td>'+ult.cant+' '+(it.unidad||'')+'</td>'
+        +'<td style="text-align:center">'+it.historial.length+'</td>'
+        +'<td><button onclick="toggleHistorialItem(this,\''+key+'\')" style="padding:2px 8px;border-radius:6px;background:#f5f5f5;border:1px solid #ddd;cursor:pointer;color:#555;font-size:11px;font-family:inherit">Ver historial</button></td>'
+        +'</tr>'
+        +'<tr class="eqi-hist-row" id="eqi-hist-'+key+'" style="display:none"><td colspan="5" style="background:#fafafa;padding:10px 16px">'
+          +it.historial.map(h=>'<div style="font-size:12px;color:#666;padding:3px 0;border-bottom:1px dashed #e5e5e5">'
+            +(h.fecha||'—')+' — '+h.cant+' '+(it.unidad||'')+' · '+(h.tipo||'')+(h.ref?' · OT '+h.ref:'')
+            +'</div>').join('')
+        +'</td></tr>';
+    }).join('')
+    +'</tbody></table>';
+}
+function toggleHistorialItem(btn,key){
+  const row=g('eqi-hist-'+key);
+  if(!row) return;
+  const abierto=row.style.display!=='none';
+  row.style.display=abierto?'none':'';
+  btn.textContent=abierto?'Ver historial':'Ocultar';
+}
+
 function renderProv(arr){
   const tb=g('tb-prov');
   if(!arr.length){tb.innerHTML='<tr><td colspan="5"><div class="empty"><i class="ti ti-building-factory"></i>Sin proveedores.</div></td></tr>';return;}
