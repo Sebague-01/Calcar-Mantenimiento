@@ -1133,6 +1133,12 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <select class="form-input" id="ot-otp-sel"><option value="">— No asociar —</option></select>
         <span class="form-hint">Si esta correctiva surgió de (o está relacionada con) una ejecución preventiva, vinculala acá para poder trazar todo el historial junto.</span>
       </div>
+      <div class="form-section">Insumos usados <span class="form-optional">(se descuentan del stock al marcar la OTC como Completada)</span></div>
+      <div class="form-group full">
+        <div id="ot-insumos-container"></div>
+        <button type="button" class="btn-sec" style="margin-top:8px;font-size:12px" id="ot-insumos-addbtn" onclick="addInsumoOT('ot-insumos-container')"><i class="ti ti-plus"></i> Agregar insumo</button>
+        <span class="form-hint" id="ot-insumos-lock-hint" style="display:none;color:#c07800">Esta OTC ya está Completada — los insumos ya fueron descontados del stock y no se pueden volver a cargar acá. Para sumar un insumo adicional, hacelo desde Stock → Movimientos.</span>
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-ot')">Cancelar</button>
@@ -2176,6 +2182,22 @@ function gNum(p,n){return p+'-'+new Date().getFullYear()+'-'+String(n).padStart(
 function tod(){return new Date().toISOString().slice(0,10);}
 function clr(ids){ids.forEach(id=>{const el=g(id);if(el)el.value='';});}
 function fillSel(id,arr,key){const s=g(id);s.innerHTML='<option value="">— seleccioná —</option>';[...arr].sort((a,b)=>(a[key]||'').localeCompare(b[key]||'','es',{sensitivity:'base'})).forEach(x=>{const o=document.createElement('option');o.value=x[key];o.textContent=x[key];s.appendChild(o);});}
+// Adjunta el id (uuid) de cada equipo como data-id en las <option> de un select de equipos
+// que fue armado con fillSel(id,S.eq,'nom'). Necesario porque el value de esas opciones
+// es el NOMBRE del equipo (para no romper lo existente), no su id.
+function attachEquipoIds(selId){
+  const sel=g(selId); if(!sel) return;
+  Array.from(sel.options).forEach(o=>{
+    if(!o.value){o.dataset.id='';return;}
+    const eq=S.eq.find(e=>e.nom===o.value);
+    o.dataset.id=eq?eq.id:'';
+  });
+}
+function equipoIdSeleccionado(selId){
+  const sel=g(selId); if(!sel) return null;
+  const opt=sel.options[sel.selectedIndex];
+  return opt&&opt.dataset.id?opt.dataset.id:null;
+}
 
 function loading(show, txt='Guardando...'){
   const ol=g('loading-overlay');
@@ -2379,16 +2401,23 @@ async function loadOTC(q='',est='',tipo=''){
   if(q) query=query.or('numero.ilike.%'+q+'%,equipo.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar OTC');return;}
-  S.ot=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,cod:r.cod_doc,eq:r.equipo,tec:r.tecnico,tipo:r.tipo,prio:r.prioridad,estado:r.estado,hs:r.horas_est,horaIni:r.hora_ini,horaFin:r.hora_fin,desc:r.descripcion,obs:r.observaciones,otpEjecId:r.otp_ejec_id||null}));
+  S.ot=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,cod:r.cod_doc,eq:r.equipo,equipoId:r.equipo_id||null,tec:r.tecnico,tipo:r.tipo,prio:r.prioridad,estado:r.estado,hs:r.horas_est,horaIni:r.hora_ini,horaFin:r.hora_fin,desc:r.descripcion,obs:r.observaciones,otpEjecId:r.otp_ejec_id||null}));
   renderOT(S.ot);
 }
 
 async function saveOT(){
   const cod=getCodLabel('otc');
-  const row={numero:v('ot-num'),fecha:v('ot-fecha'),cod_doc:cod||null,equipo:v('ot-equipo')||null,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:v('ot-estado'),horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
+  const equipoId=equipoIdSeleccionado('ot-equipo');
+  const estadoNuevo=v('ot-estado');
+  const row={numero:v('ot-num'),fecha:v('ot-fecha'),cod_doc:cod||null,equipo:v('ot-equipo')||null,equipo_id:equipoId,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:estadoNuevo,horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
   loading(true);
   const {data,error}=await sb.from('otc').insert(row).select();
   if(error){loading(false);dbErr(error,'guardar OTC');return;}
+  // Si se crea directamente como Completada, descontar los insumos cargados
+  if(estadoNuevo==='Completada'){
+    const insumos=getInsumosOT('ot-insumos-container');
+    await consumirInsumosOT(insumos,equipoId,'OTC',data[0].id,row.numero);
+  }
   // Si esta OTC viene de un reclamo, marcar el reclamo como convertido y vincularlo
   if(convirtiendoReclamoId){
     const recId=convirtiendoReclamoId;
@@ -2412,7 +2441,9 @@ async function saveOT(){
   }
   loading(false);
   closeModal('m-ot'); clr(['ot-tec','ot-hs','ot-hora-ini','ot-hora-fin','ot-desc','ot-obs']);
+  g('ot-insumos-container').innerHTML=''; otInsumoCount=0;
   await loadOTC(); updateDash();
+  if(estadoNuevo==='Completada') await Promise.all([loadItems(),loadMovs()]);
 }
 
 function avisarConformidad(numReclamo, numOtc){
@@ -3185,6 +3216,10 @@ async function openModal(id){
     g('ot-num').value=await nextNum('otc','numero','OTC');
     g('ot-fecha').value=tod();
     fillSel('ot-equipo',S.eq,'nom');
+    attachEquipoIds('ot-equipo');
+    // Insumos: arranca vacío y destrabado (OTC nueva nunca está Completada)
+    g('ot-insumos-container').innerHTML=''; otInsumoCount=0;
+    setInsumosOTLock(false);
     updateCodDisplay('otc');
   }
   if(id==='m-equipo'){
@@ -4130,6 +4165,76 @@ function addInsumo(codVal='',cant=''){
     +'<input type="text" class="form-input" placeholder="Cantidad" style="font-size:13px" value="'+cant+'">'
     +'<button type="button" onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:18px;line-height:1">×</button>';
   g('insumos-container').appendChild(div);
+}
+
+// ══════════════════════════════════════
+// Insumos usados en OT (OTC por ahora) — se guardan como
+// movimientos de stock recién al marcar la OT como Completada
+// ══════════════════════════════════════
+let otInsumoCount=0;
+function addInsumoOT(containerId,codVal='',cant=''){
+  otInsumoCount++;
+  const div=document.createElement('div');
+  div.style.cssText='display:grid;grid-template-columns:1fr 100px 28px;gap:8px;margin-bottom:6px;align-items:center';
+  let opts='<option value="">— elegir del stock —</option>';
+  S.items.forEach(it=>{
+    const actual=stockActual(it.cod);
+    const sel=it.cod===codVal?'selected':'';
+    opts+='<option value="'+it.cod+'|'+it.desc+'" '+sel+'>'+it.cod+' — '+it.desc+' ('+actual+' '+it.unidad+')</option>';
+  });
+  if(!S.items.length) opts='<option value="">Sin ítems en stock — agregá en la pestaña Stock</option>';
+  div.innerHTML=
+    '<select class="form-input" style="font-size:12px">'+opts+'</select>'
+    +'<input type="text" class="form-input" placeholder="Cantidad" style="font-size:13px" value="'+cant+'">'
+    +'<button type="button" onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:18px;line-height:1">×</button>';
+  g(containerId).appendChild(div);
+}
+function getInsumosOT(containerId){
+  const rows=g(containerId).children;
+  const result=[];
+  for(const r of rows){
+    const sel=r.querySelector('select');
+    const inp=r.querySelector('input');
+    if(sel&&sel.value){
+      const parts=sel.value.split('|');
+      const cod=parts[0]||'';
+      const desc=parts[1]||sel.options[sel.selectedIndex]?.text||'';
+      const cant=inp?parseFloat((inp.value||'').trim().replace(',','.'))||0:0;
+      result.push({cod,desc,cant});
+    }
+  }
+  return result;
+}
+// Bloquea/desbloquea la sección de insumos según si la OT ya está Completada
+function setInsumosOTLock(locked){
+  g('ot-insumos-container').style.display=locked?'none':'';
+  g('ot-insumos-addbtn').style.display=locked?'none':'';
+  g('ot-insumos-lock-hint').style.display=locked?'':'none';
+}
+// Genera un movimiento de salida de stock por cada insumo cargado.
+// tipoOrigen: 'OTC' | 'OTE' — otId: id (uuid) de la orden ya guardada.
+async function consumirInsumosOT(insumos,equipoId,tipoOrigen,otId,otNumero){
+  const validos=insumos.filter(i=>i.cod&&i.cant>0);
+  if(!validos.length) return true;
+  const tipoMov=tipoOrigen==='OTE'?'Salida — OTE':'Salida — OT';
+  for(const ins of validos){
+    const item=S.items.find(i=>i.cod===ins.cod);
+    const row={
+      fecha:tod(),
+      item_cod:ins.cod,
+      descripcion:item?item.desc:ins.desc,
+      unidad:item?item.unidad:'u',
+      tipo:tipoMov,
+      cantidad:ins.cant,
+      referencia:otNumero||null,
+      equipo_id:equipoId||null,
+      ot_origen_tipo:tipoOrigen,
+      ot_origen_id:otId
+    };
+    const {error}=await sb.from('stock_movimientos').insert(row);
+    if(error){dbErr(error,'descontar insumo '+ins.cod+' de la '+tipoOrigen);return false;}
+  }
+  return true;
 }
 
 // Leer checkpoints del modal
@@ -5357,7 +5462,7 @@ async function editOT(idx){
   if(!o){alert('Esta OTC ya no existe o fue eliminada.');return;}
   g('ot-num').value=o.num;
   g('ot-fecha').value=o.fecha||'';
-  fillSel('ot-equipo',S.eq,'nom'); g('ot-equipo').value=o.eq||'';
+  fillSel('ot-equipo',S.eq,'nom'); g('ot-equipo').value=o.eq||''; attachEquipoIds('ot-equipo');
   populateFuncionarioSelects(); ensureSelectOption(g('ot-tec'),o.tec||'');
   g('ot-tipo').value=o.tipo||'Correctivo';
   g('ot-prio').value=o.prio||'Normal';
@@ -5369,14 +5474,29 @@ async function editOT(idx){
   g('ot-obs').value=o.obs||'';
   fillOtpSel(o.otpEjecId||'');
   updateCodDisplay('otc');
+  // Insumos: si esta OTC ya está Completada, la sección queda bloqueada
+  // (los insumos ya se descontaron del stock al momento del cierre).
+  g('ot-insumos-container').innerHTML=''; otInsumoCount=0;
+  const yaCompletadaAlAbrir=o.estado==='Completada';
+  setInsumosOTLock(yaCompletadaAlAbrir);
   const btn=g('m-ot').querySelector('.btn-primary');
   btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
   btn.onclick=async()=>{
-    const row={equipo:v('ot-equipo')||null,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:v('ot-estado'),horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
+    const equipoId=equipoIdSeleccionado('ot-equipo');
+    const estadoNuevo=v('ot-estado');
+    const row={equipo:v('ot-equipo')||null,equipo_id:equipoId,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:estadoNuevo,horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
     loading(true);
     const {error}=await sb.from('otc').update(row).eq('id',o.id);
+    if(error){loading(false);dbErr(error,'guardar OTC');return;}
+    // Recién ahora se descuenta stock: solo si ESTA edición es la que hace
+    // la transición a Completada (no estaba Completada al abrir el modal).
+    if(estadoNuevo==='Completada' && !yaCompletadaAlAbrir){
+      const insumos=getInsumosOT('ot-insumos-container');
+      const ok=await consumirInsumosOT(insumos,equipoId,'OTC',o.id,o.num);
+      if(!ok){loading(false);return;}
+      await Promise.all([loadItems(),loadMovs()]);
+    }
     loading(false);
-    if(error){dbErr(error,'guardar OTC');return;}
     btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar OTC';
     btn.onclick=saveOT;
     closeModal('m-ot'); await loadOTC(); updateDash();
