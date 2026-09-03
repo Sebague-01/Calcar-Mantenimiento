@@ -1624,7 +1624,12 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <select class="form-input" id="ejec-estado"><option>Completada</option><option>Pendiente</option><option>Parcial</option><option>No realizada</option></select>
       </div>
       <div class="form-group full"><label class="form-label">Observaciones / Anomalías encontradas</label><textarea class="form-input" id="ejec-obs" placeholder="Qué se encontró, qué se corrigió..."></textarea></div>
-      <div class="form-group full"><label class="form-label">Insumos usados <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="ejec-insumos" placeholder="ej: 2L aceite 10W40, 1 filtro"></div>
+      <div class="form-section">Insumos usados <span class="form-optional">(precargados desde lo planificado — ajustá cantidades o agregá/sacá según lo que realmente usaste. Se descuentan del stock al marcar como Completada)</span></div>
+      <div class="form-group full">
+        <div id="ejec-insumos-container"></div>
+        <button type="button" class="btn-sec" style="margin-top:8px;font-size:12px" id="ejec-insumos-addbtn" onclick="addInsumoOT('ejec-insumos-container')"><i class="ti ti-plus"></i> Agregar insumo</button>
+        <span class="form-hint" id="ejec-insumos-lock-hint" style="display:none;color:#c07800">Esta ejecución ya está Completada — los insumos ya fueron descontados del stock y no se pueden volver a cargar acá. Para sumar un insumo adicional, hacelo desde Stock → Movimientos.</span>
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-ejec')">Cancelar</button>
@@ -3013,7 +3018,7 @@ async function loadTareas(q='',eq=''){
   if(q) query=query.or('codigo.ilike.%'+q+'%,descripcion.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar tareas');return;}
-  S.tareas=data.map(r=>({id:r.id,cod:r.codigo,equipo:r.equipo,desc:r.descripcion,freq:r.frecuencia,diasCiclo:r.dias_ciclo,fechaIni:r.fecha_inicio,hs:r.intervalo_hs,tiempo:r.tiempo_est,tec:r.tecnico,checks:r.checks||[],insumos:r.insumos||[],umbral:r.umbral||null,pasos:r.pasos||[],insumosPm:r.insumos_pm||[],instCod:r.inst_cod||null}));
+  S.tareas=data.map(r=>({id:r.id,cod:r.codigo,equipo:r.equipo,equipoId:r.equipo_id||null,desc:r.descripcion,freq:r.frecuencia,diasCiclo:r.dias_ciclo,fechaIni:r.fecha_inicio,hs:r.intervalo_hs,tiempo:r.tiempo_est,tec:r.tecnico,checks:r.checks||[],insumos:r.insumos||[],umbral:r.umbral||null,pasos:r.pasos||[],insumosPm:r.insumos_pm||[],instCod:r.inst_cod||null}));
   renderPlan(S.tareas);
   syncPrevEquipoFilter();
 }
@@ -3028,7 +3033,7 @@ async function saveTarea(){
   const fechaIni=sinFreq?null:(v('tar-fecha-ini')||null);
   const umbral=parseInt(v('tar-umbral'))||null;
   const instCod=v('tar-inst-cod').trim().toUpperCase()||null;
-  const row={codigo:cod,equipo:v('tar-equipo')||null,descripcion:desc,frecuencia:freq,dias_ciclo:diasCiclo,fecha_inicio:fechaIni,intervalo_hs:umbral,tiempo_est:v('tar-tiempo')||null,tecnico:v('tar-tec')||null,checks:getChecks(),insumos:getInsumos(),umbral:umbral,inst_cod:instCod};
+  const row={codigo:cod,equipo:v('tar-equipo')||null,equipo_id:equipoIdSeleccionado('tar-equipo'),descripcion:desc,frecuencia:freq,dias_ciclo:diasCiclo,fecha_inicio:fechaIni,intervalo_hs:umbral,tiempo_est:v('tar-tiempo')||null,tecnico:v('tar-tec')||null,checks:getChecks(),insumos:getInsumos(),umbral:umbral,inst_cod:instCod};
   loading(true);
   const {error}=await sb.from('otp_tareas').insert(row);
   loading(false);
@@ -3082,19 +3087,27 @@ async function loadEjecucs(q='',eq=''){
   if(q) query=query.or('numero.ilike.%'+q+'%,descripcion.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar ejecuciones');return;}
-  S.ejecucs=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,tarea:r.tarea_cod,desc:r.descripcion,equipo:r.equipo,tec:r.tecnico,horasEq:r.horas_equipo,estado:r.estado,obs:r.observaciones,insumos:r.insumos_used,checks:r.checks||[],insumosList:r.insumos_list||[],freq:r.frecuencia}));
+  S.ejecucs=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,tarea:r.tarea_cod,desc:r.descripcion,equipo:r.equipo,equipoId:r.equipo_id||null,tec:r.tecnico,horasEq:r.horas_equipo,estado:r.estado,obs:r.observaciones,checks:r.checks||[],insumosList:r.insumos_list||[],freq:r.frecuencia}));
   renderEjec(S.ejecucs);
 }
 
 async function saveEjec(){
   if(ejecTareaIdx===null) return;
   const t=S.tareas[ejecTareaIdx];
-  const row={numero:v('ejec-num'),tarea_cod:t.cod,fecha:v('ejec-fecha'),equipo:t.equipo,descripcion:t.desc,tecnico:v('ejec-tec')||null,horas_equipo:v('ejec-horas-eq')||null,estado:v('ejec-estado'),observaciones:v('ejec-obs')||null,insumos_used:v('ejec-insumos')||null,checks:t.checks,insumos_list:t.insumos,frecuencia:t.freq};
+  const estadoNuevo=v('ejec-estado');
+  const row={numero:v('ejec-num'),tarea_cod:t.cod,fecha:v('ejec-fecha'),equipo:t.equipo,equipo_id:t.equipoId||null,descripcion:t.desc,tecnico:v('ejec-tec')||null,horas_equipo:v('ejec-horas-eq')||null,estado:estadoNuevo,observaciones:v('ejec-obs')||null,checks:t.checks,insumos_list:t.insumos,frecuencia:t.freq};
   loading(true);
-  const {error}=await sb.from('otp_ejecuciones').insert(row);
+  const {data,error}=await sb.from('otp_ejecuciones').insert(row).select();
+  if(error){loading(false);dbErr(error,'guardar ejecución');return;}
+  if(estadoNuevo==='Completada'){
+    const insumos=getInsumosOT('ejec-insumos-container');
+    const ok=await consumirInsumosOT(insumos,t.equipoId,'OTP',data[0].id,row.numero);
+    if(!ok){loading(false);return;}
+    await Promise.all([loadItems(),loadMovs()]);
+  }
   loading(false);
-  if(error){dbErr(error,'guardar ejecución');return;}
-  closeModal('m-ejec'); clr(['ejec-tec','ejec-horas-eq','ejec-obs','ejec-insumos']);
+  closeModal('m-ejec'); clr(['ejec-tec','ejec-horas-eq','ejec-obs']);
+  g('ejec-insumos-container').innerHTML=''; otInsumoCount=0;
   await loadEjecucs();
 }
 
@@ -4299,11 +4312,12 @@ function getInsumosOT(containerId){
   }
   return result;
 }
-// Bloquea/desbloquea la sección de insumos según si la OT ya está Completada
-function setInsumosOTLock(locked){
-  g('ot-insumos-container').style.display=locked?'none':'';
-  g('ot-insumos-addbtn').style.display=locked?'none':'';
-  g('ot-insumos-lock-hint').style.display=locked?'':'none';
+// Bloquea/desbloquea la sección de insumos según si la OT ya está Completada.
+// Parametrizable por ids de contenedor para reusar entre OTC y OTP.
+function setInsumosOTLock(locked,containerId='ot-insumos-container',btnId='ot-insumos-addbtn',hintId='ot-insumos-lock-hint'){
+  g(containerId).style.display=locked?'none':'';
+  g(btnId).style.display=locked?'none':'';
+  g(hintId).style.display=locked?'':'none';
 }
 // Genera un movimiento de salida de stock por cada insumo cargado.
 // tipoOrigen: 'OTC' | 'OTE' — otId: id (uuid) de la orden ya guardada.
@@ -4355,6 +4369,7 @@ function getInsumos(){
 // Abrir modal tarea
 function openTareaModal(){
   fillSel('tar-equipo',S.eq,'nom');
+  attachEquipoIds('tar-equipo');
   g('checks-container').innerHTML='';
   g('insumos-container').innerHTML='';
   checkCount=0; insumoCount=0;
@@ -4382,6 +4397,7 @@ function openEditTareaModal(idx){
   editTareaIdx = idx;
   const t = S.tareas[idx];
   fillSel('tar-equipo',S.eq,'nom');
+  attachEquipoIds('tar-equipo');
   syncInstSelect();
 
   // Precargar campos
@@ -4434,6 +4450,7 @@ async function saveEditTarea(){
   const instCod=v('tar-inst-cod').trim().toUpperCase()||null;
   const row={
     equipo:v('tar-equipo')||null,
+    equipo_id:equipoIdSeleccionado('tar-equipo'),
     descripcion:desc,
     frecuencia:freq,
     dias_ciclo:diasCiclo,
@@ -4478,7 +4495,11 @@ async function openEjecModal(idx){
   g('ejec-tec').value=t.tec||''; ensureSelectOption(g('ejec-tec'),t.tec||'');
   g('ejec-horas-eq').value='';
   g('ejec-obs').value='';
-  g('ejec-insumos').value=t.insumos.map(i=>i.cant+' '+i.desc).join(', ');
+  // Precargar insumos planificados de la tarea — el usuario ajusta cantidades
+  // o agrega/saca según lo que realmente usó al ejecutar.
+  g('ejec-insumos-container').innerHTML=''; otInsumoCount=0;
+  (t.insumos||[]).forEach(i=>addInsumoOT('ejec-insumos-container',i.cod,i.cant));
+  setInsumosOTLock(false,'ejec-insumos-container','ejec-insumos-addbtn','ejec-insumos-lock-hint');
   g('m-ejec').classList.add('open');
 }
 
@@ -4525,7 +4546,7 @@ function filterEjec(){
 }
 
 // ── PDF PREVENTIVO ──
-function buildPrevPDF(tarea, ejec){
+function buildPrevPDF(tarea, ejec, insumosOverride){
   const num=ejec?ejec.num:'BORRADOR';
   const cod=S.docConfig['otp']&&S.docConfig['otp'].cod?S.docConfig['otp'].cod+' '+S.docConfig['otp'].rev:'';
   const fechaTxt=ejec?('Ejecución: '+ejec.fecha):('Plan: '+tod());
@@ -4544,7 +4565,7 @@ function buildPrevPDF(tarea, ejec){
   const checks=tarea.checks.length?tarea.checks:['(sin pasos definidos)'];
   const checksHTML=checks.map(c=>'<tr><td><span class="check-box"></span></td><td>'+c+'</td><td></td></tr>').join('');
 
-  const ins=tarea.insumos.length?tarea.insumos:[{cod:'',desc:'(sin insumos definidos)',cant:''}];
+  const ins=insumosOverride?insumosOverride:(tarea.insumos.length?tarea.insumos:[{cod:'',desc:'(sin insumos definidos)',cant:''}]);
   const insumosHTML=ins.map(i=>'<tr><td>'+(i.cod?'<span style="font-family:Courier New,monospace;font-size:9pt;color:#888">'+i.cod+'</span> ':'')+i.desc+'</td><td>'+i.cant+'</td><td></td></tr>').join('');
 
   const ejecFecha=ejec?ejec.fecha:'';
@@ -4681,10 +4702,16 @@ function printPrevBlank(idx){
 }
 
 // Imprimir registro de ejecución
-function printPrevEjec(idx){
+async function printPrevEjec(idx){
   const ejec=S.ejecucs[idx];
   const tarea=S.tareas.find(t=>t.cod===ejec.tarea)||{equipo:ejec.equipo,cod:ejec.tarea,desc:ejec.desc,freq:ejec.freq||'—',hs:'',tiempo:'',tec:'',checks:ejec.checks||[],insumos:ejec.insumosList||[]};
-  const html=buildPrevPDF(tarea, ejec);
+  // Preferir los insumos REALMENTE usados (stock_movimientos) sobre los
+  // planificados, para que el PDF de una ejecución ya cerrada refleje lo
+  // que de verdad se consumió y no solo lo que se había previsto.
+  let insumosOverride=null;
+  const {data}=await sb.from('stock_movimientos').select('*').eq('ot_origen_tipo','OTP').eq('ot_origen_id',ejec.id).order('fecha',{ascending:true});
+  if(data&&data.length) insumosOverride=data.map(r=>({cod:r.item_cod,desc:r.descripcion,cant:r.cantidad+' '+(r.unidad||'')}));
+  const html=buildPrevPDF(tarea, ejec, insumosOverride);
   const w=window.open('','_blank');
   if(!w){alert('El navegador bloqueó la ventana del PDF. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   w.document.write(html);
@@ -5619,16 +5646,28 @@ async function editEjec(idx){
   g('ejec-horas-eq').value=e.horasEq||'';
   g('ejec-estado').value=e.estado||'Completada';
   g('ejec-obs').value=e.obs||'';
-  g('ejec-insumos').value=e.insumos||'';
   g('mejec-title').textContent='Editar ejecución — '+e.num;
+  // Insumos: si ya está Completada, se bloquea (ya se descontó del stock).
+  // Si no, se precarga desde lo planificado (guardado en insumos_list al crear).
+  g('ejec-insumos-container').innerHTML=''; otInsumoCount=0;
+  const yaCompletadaAlAbrir=e.estado==='Completada';
+  if(!yaCompletadaAlAbrir) (e.insumosList||[]).forEach(i=>addInsumoOT('ejec-insumos-container',i.cod,i.cant));
+  setInsumosOTLock(yaCompletadaAlAbrir,'ejec-insumos-container','ejec-insumos-addbtn','ejec-insumos-lock-hint');
   const btn=g('m-ejec').querySelector('.btn-primary');
   btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
   btn.onclick=async()=>{
-    const row={fecha:v('ejec-fecha'),tecnico:v('ejec-tec')||null,horas_equipo:v('ejec-horas-eq')||null,estado:v('ejec-estado'),observaciones:v('ejec-obs')||null,insumos_used:v('ejec-insumos')||null};
+    const estadoNuevo=v('ejec-estado');
+    const row={fecha:v('ejec-fecha'),tecnico:v('ejec-tec')||null,horas_equipo:v('ejec-horas-eq')||null,estado:estadoNuevo,observaciones:v('ejec-obs')||null};
     loading(true);
     const {error}=await sb.from('otp_ejecuciones').update(row).eq('id',e.id);
+    if(error){loading(false);dbErr(error,'guardar ejecución');return;}
+    if(estadoNuevo==='Completada' && !yaCompletadaAlAbrir){
+      const insumos=getInsumosOT('ejec-insumos-container');
+      const ok=await consumirInsumosOT(insumos,e.equipoId,'OTP',e.id,e.num);
+      if(!ok){loading(false);return;}
+      await Promise.all([loadItems(),loadMovs()]);
+    }
     loading(false);
-    if(error){dbErr(error,'guardar ejecución');return;}
     btn.innerHTML='<i class="ti ti-device-floppy"></i> Registrar ejecución';
     btn.onclick=saveEjec;
     g('mejec-title').textContent='Ejecutar tarea preventiva';
