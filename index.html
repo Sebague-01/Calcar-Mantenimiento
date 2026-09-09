@@ -813,13 +813,17 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="toolbar">
         <div class="toolbar-left">
           <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Buscar producto..." id="s-cat" oninput="filterCat()"></div>
-          <select id="f-cat-cat" onchange="filterCat()">
+          <select id="f-cat-cat" onchange="syncTaxonomyFilters()">
             <option value="">Todas las categorías</option>
-            <option value="LUB">Lubricantes</option>
-            <option value="QUI">Químicos</option>
-            <option value="REP">Repuestos</option>
-            <option value="HER">Herramientas</option>
-            <option value="CON">Consumibles</option>
+          </select>
+          <select id="f-cat-subcat" onchange="syncTaxonomyFilters()">
+            <option value="">Todas las subcategorías</option>
+          </select>
+          <select id="f-cat-subsubcat" onchange="syncTaxonomyFilters()">
+            <option value="">Todas las sub-subcategorías</option>
+          </select>
+          <select id="f-cat-prov" onchange="filterCat()">
+            <option value="">Todos los proveedores</option>
           </select>
           <select id="f-cat-estado" onchange="filterCat()">
             <option value="">Todos los estados</option>
@@ -1265,7 +1269,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 <!-- ÍTEM DE STOCK -->
 <div class="modal-overlay" id="m-item">
   <div class="modal-box">
-    <div class="modal-header"><div class="modal-title">Nuevo producto / ítem de stock</div><button class="modal-close" onclick="closeModal('m-item')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-header"><div class="modal-title" id="item-modal-title">Nuevo producto / ítem de stock</div><button class="modal-close" onclick="closeModal('m-item')"><i class="ti ti-x"></i></button></div>
     <div class="form-grid">
       <!-- Fila 1: Categoría y Subcategoría -->
       <div class="form-group"><label class="form-label">Categoría</label>
@@ -1337,7 +1341,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     </div>
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-item')">Cancelar</button>
-      <button class="btn-primary" onclick="saveItem()"><i class="ti ti-device-floppy"></i> Guardar producto</button>
+      <button class="btn-primary" id="item-save-btn" onclick="saveItem()"><i class="ti ti-device-floppy"></i> Guardar producto</button>
     </div>
   </div>
 </div>
@@ -2612,6 +2616,9 @@ async function showApp(){
     loadTareas(), loadEjecucs(), loadInst(), loadEventos(), loadLecturas(),
     loadReclamos()
   ]);
+  populateCategoriaFilterSelect();
+  populateProveedorFilterSelect();
+  syncTaxonomyFilters();
   await loadPlan();
   fillOtpSel();
   renderOT(S.ot);
@@ -3012,9 +3019,13 @@ function imprimirReclamo(idx){
 // ══════════════════════════════════════
 // STOCK — Ítems
 // ══════════════════════════════════════
-async function loadItems(q='',cat=''){
+async function loadItems(opts={}){
+  const {q='',cc='',ss='',tt='',prov=''}=opts;
   let query=sb.from('stock_actual').select('*').order('codigo');
-  if(cat) query=query.eq('categoria',cat);
+  if(cc) query=query.eq('categoria',cc);
+  if(ss) query=query.eq('subcategoria',ss);
+  if(tt) query=query.eq('sub_subcategoria',tt);
+  if(prov) query=query.eq('proveedor_codigo',prov);
   if(q) query=query.or('codigo.ilike.%'+q+'%,nombre_comercial.ilike.%'+q+'%,marca.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar stock');return;}
@@ -3023,6 +3034,8 @@ async function loadItems(q='',cat=''){
     cod:r.codigo,
     cat:r.categoria,
     subcat:r.subcategoria,
+    subsubcat:r.sub_subcategoria,
+    provcod:r.proveedor_codigo,
     desc:r.nombre_comercial||r.descripcion,
     marca:r.marca,
     modelo:r.modelo,
@@ -3107,15 +3120,9 @@ async function saveItem(){
 
   const provSel=S.prov.find(p=>p.cod===ppp);
 
-  // El código lo arma el trigger de la base (asignar_codigo_stock_item) a partir
-  // de categoria/subcategoria/sub_subcategoria/proveedor_codigo — no se manda acá.
   const row={
     descripcion:nombre,
     nombre_comercial:nombre,
-    categoria:cc,
-    subcategoria:ss,
-    sub_subcategoria:tt,
-    proveedor_codigo:ppp,
     proveedor_principal:provSel?provSel.emp:null,
     unidad:v('item-unidad'),
     stock_min:parseFloat(v('item-min'))||0
@@ -3132,9 +3139,8 @@ async function saveItem(){
     ubicacion_almacen:v('item-ubic')||null,
     estado:v('item-estado'),
     observaciones:v('item-obs')||null,
-    obs:v('item-obs')||null // Intentar con 'obs' también por si usa nombre corto
+    obs:v('item-obs')||null
   };
-
   Object.keys(optionalFields).forEach(key => {
     if(optionalFields[key] !== null && optionalFields[key] !== undefined && optionalFields[key] !== ''){
       row[key] = optionalFields[key];
@@ -3142,6 +3148,39 @@ async function saveItem(){
   });
 
   loading(true);
+
+  if(editingItemId){
+    // EDICIÓN: solo recodifica si cambió categoría/subcategoría/sub-subcategoría/proveedor
+    const cambioTaxonomia = !editingItemOriginal
+      || cc!==editingItemOriginal.cc || ss!==editingItemOriginal.ss
+      || tt!==editingItemOriginal.tt || ppp!==editingItemOriginal.ppp;
+
+    row.categoria=cc; row.subcategoria=ss; row.sub_subcategoria=tt; row.proveedor_codigo=ppp;
+
+    if(cambioTaxonomia){
+      // Próximo correlativo disponible en la combinación nueva (excluyendo el propio ítem, por si no cambió del todo)
+      const {count,error:errCount}=await sb.from('stock_items').select('id',{count:'exact',head:true})
+        .eq('categoria',cc).eq('subcategoria',ss).eq('sub_subcategoria',tt).eq('proveedor_codigo',ppp)
+        .neq('id',editingItemId);
+      if(errCount){ loading(false); dbErr(errCount,'calcular nuevo código'); return; }
+      const nnnn=String((count||0)+1).padStart(4,'0');
+      row.correlativo=nnnn;
+      row.codigo=cc+'-'+ss+'-'+tt+'-'+ppp+'-'+nnnn;
+    }
+
+    const {data,error}=await sb.from('stock_items').update(row).eq('id',editingItemId).select('codigo');
+    loading(false);
+    if(error){ dbErr(error,'actualizar producto'); return; }
+    closeModal('m-item'); clr(['item-nombre','item-marca','item-modelo','item-cert','item-present','item-min','item-reord','item-aplic','item-precio','item-ubic','item-obs']);
+    editingItemId=null; editingItemOriginal=null;
+    if(data&&data[0]&&cambioTaxonomia) alert('Producto actualizado. Nuevo código: '+data[0].codigo);
+    await loadItems();
+    return;
+  }
+
+  // ALTA NUEVA: el código lo arma el trigger (asignar_codigo_stock_item) a partir
+  // de categoria/subcategoria/sub_subcategoria/proveedor_codigo — no se manda acá.
+  row.categoria=cc; row.subcategoria=ss; row.sub_subcategoria=tt; row.proveedor_codigo=ppp;
   const {data,error}=await sb.from('stock_items').insert(row).select('codigo');
   loading(false);
   if(error){
@@ -3159,8 +3198,69 @@ async function saveItem(){
 }
 
 async function filterCat(){
-  const q=g('s-cat').value.toLowerCase(), cat=g('f-cat-cat').value;
-  await loadItems(q,cat);
+  const q=g('s-cat').value.toLowerCase();
+  const cc=v('f-cat-cat'), scVal=v('f-cat-subcat'), ssubVal=v('f-cat-subsubcat'), prov=v('f-cat-prov');
+  let ss='', tt='';
+  if(ssubVal){ const p=ssubVal.split('-'); ss=p[1]; tt=p[2]; }
+  else if(scVal){ const p=scVal.split('-'); ss=p[1]; }
+  await loadItems({q,cc,ss,tt,prov});
+}
+
+// ══════════════════════════════════════
+// FILTROS DE STOCK EN CASCADA — Categoría / Subcategoría / Sub-subcategoría
+// Se puede entrar por cualquiera de los tres; los otros se ajustan solos.
+// El proveedor es un filtro aparte, independiente de la taxonomía.
+// ══════════════════════════════════════
+function populateCategoriaFilterSelect(){
+  const sel=g('f-cat-cat');
+  sel.innerHTML='<option value="">Todas las categorías</option>'
+    +Object.keys(TAXONOMIA).map(cc=>'<option value="'+cc+'">'+TAXONOMIA[cc].nombre+'</option>').join('');
+}
+
+function populateProveedorFilterSelect(){
+  const sel=g('f-cat-prov');
+  sel.innerHTML='<option value="">Todos los proveedores</option>'
+    +S.prov.map(p=>'<option value="'+p.cod+'">'+p.emp+'</option>').join('');
+}
+
+function syncTaxonomyFilters(){
+  const cc0=v('f-cat-cat'), scVal=v('f-cat-subcat'), ssubVal=v('f-cat-subsubcat');
+  let cc='', ss='', tt='';
+  if(ssubVal){ const p=ssubVal.split('-'); cc=p[0]; ss=p[1]; tt=p[2]; }
+  else if(scVal){ const p=scVal.split('-'); cc=p[0]; ss=p[1]; }
+  else if(cc0){ cc=cc0; }
+
+  g('f-cat-cat').value=cc;
+
+  // Reconstruir SUBCATEGORÍA: si hay categoría, solo las de esa categoría;
+  // si no, todas (con el nombre de categoría al lado para no perder contexto)
+  const subcatSel=g('f-cat-subcat');
+  let subOpts=[];
+  if(cc){
+    Object.entries(TAXONOMIA[cc].subcats).forEach(([s,sub])=>subOpts.push({val:cc+'-'+s,label:sub.nombre}));
+  }else{
+    Object.entries(TAXONOMIA).forEach(([c,cat])=>Object.entries(cat.subcats).forEach(([s,sub])=>subOpts.push({val:c+'-'+s,label:sub.nombre+' — '+cat.nombre})));
+    subOpts.sort((a,b)=>a.label.localeCompare(b.label));
+  }
+  subcatSel.innerHTML='<option value="">Todas las subcategorías</option>'+subOpts.map(o=>'<option value="'+o.val+'">'+o.label+'</option>').join('');
+  subcatSel.value=(cc&&ss)?(cc+'-'+ss):'';
+
+  // Reconstruir SUB-SUBCATEGORÍA: acotada a lo más específico ya elegido arriba,
+  // o la lista alfabética completa si todavía no se eligió nada
+  const subsubSel=g('f-cat-subsubcat');
+  let subsubOpts=[];
+  if(cc&&ss){
+    Object.entries(TAXONOMIA[cc].subcats[ss].subsubs).forEach(([t,nombre])=>subsubOpts.push({val:cc+'-'+ss+'-'+t,label:nombre}));
+  }else if(cc){
+    Object.entries(TAXONOMIA[cc].subcats).forEach(([s,sub])=>Object.entries(sub.subsubs).forEach(([t,nombre])=>subsubOpts.push({val:cc+'-'+s+'-'+t,label:nombre+' — '+sub.nombre})));
+  }else{
+    Object.entries(TAXONOMIA).forEach(([c,cat])=>Object.entries(cat.subcats).forEach(([s,sub])=>Object.entries(sub.subsubs).forEach(([t,nombre])=>subsubOpts.push({val:c+'-'+s+'-'+t,label:nombre+' — '+cat.nombre+' › '+sub.nombre}))));
+  }
+  subsubOpts.sort((a,b)=>a.label.localeCompare(b.label));
+  subsubSel.innerHTML='<option value="">Todas las sub-subcategorías</option>'+subsubOpts.map(o=>'<option value="'+o.val+'">'+o.label+'</option>').join('');
+  subsubSel.value=(cc&&ss&&tt)?(cc+'-'+ss+'-'+tt):'';
+
+  filterCat();
 }
 
 // ══════════════════════════════════════
@@ -4110,8 +4210,54 @@ function movCant(m){
   return '<span class="'+cls+'">'+prefix+m.cant+' '+m.unidad+'</span>';
 }
 
+// Estado de edición del modal de ítem (null = alta nueva)
+let editingItemId=null;
+let editingItemOriginal=null;
+
+// Abrir modal para editar un ítem existente
+function editItem(cod){
+  const it=S.items.find(i=>i.cod===cod);
+  if(!it){alert('No se encontró el ítem '+cod+'.');return;}
+
+  editingItemId=it.id;
+  editingItemOriginal={cc:it.cat,ss:it.subcat,tt:it.subsubcat,ppp:it.provcod};
+
+  populateCategoriaSelect();
+  g('item-cat').value=it.cat||'';
+  onCategoriaChange();
+  g('item-subcat').value=it.subcat||'';
+  onSubcategoriaChange();
+  g('item-subsubcat').value=it.subsubcat||'';
+
+  populateProveedorSelect();
+  g('item-prov-sel').value=it.provcod||'';
+
+  g('item-nombre').value=it.desc||'';
+  g('item-marca').value=it.marca||'';
+  g('item-modelo').value=it.modelo||'';
+  g('item-cert').value=it.cert||'';
+  g('item-unidad').value=it.unidad||'u';
+  g('item-present').value=it.present||'';
+  g('item-min').value=it.min||'';
+  g('item-reord').value=it.reorden||'';
+  g('item-aplic').value=it.aplicacion||'';
+  g('item-precio').value=it.precio||'';
+  g('item-ubic').value=it.ubicacion||'';
+  g('item-estado').value=it.estado||'Activo';
+  g('item-obs').value=it.obs||'';
+
+  g('item-cod-preview').value=it.cod+' (código actual — cambia solo si modificás categoría, subcategoría, sub-subcategoría o proveedor)';
+
+  g('item-modal-title').textContent='Editar producto — '+it.cod;
+  g('item-save-btn').innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
+  openModal('m-item');
+}
+
 // Abrir modal ítem
 function openItemModal(){
+  editingItemId=null; editingItemOriginal=null;
+  g('item-modal-title').textContent='Nuevo producto / ítem de stock';
+  g('item-save-btn').innerHTML='<i class="ti ti-device-floppy"></i> Guardar producto';
   populateCategoriaSelect();
   populateProveedorSelect();
   g('item-subcat').innerHTML='<option value="">— elegí categoría primero —</option>'; g('item-subcat').disabled=true;
@@ -4168,7 +4314,8 @@ function renderCat(arr){
   tb.innerHTML=arr.map(it=>{
     const actual=it.actual||0;
     const marca=it.marca||'—';
-    const subcat=it.subcat?'<span class="badge b-gray">'+it.subcat+'</span>':'<span style="color:#ccc">'+it.cat+'</span>';
+    const subcatLabel=taxonomiaLabel(it.cat,it.subcat,it.subsubcat);
+    const subcat=subcatLabel?'<span class="badge b-gray">'+subcatLabel+'</span>':'<span style="color:#ccc">—</span>';
     const ubicacion=it.ubicacion||'—';
     const lote=it.ultimo_lote||'—';
     const venc=it.fecha_vencimiento?formatDate(it.fecha_vencimiento):'—';
@@ -4184,9 +4331,18 @@ function renderCat(arr){
       +'<td style="color:#888;font-size:11px;font-family:monospace">'+lote+'</td>'
       +'<td style="color:#888;font-size:12px">'+venc+'</td>'
       +'<td>'+stockBadge(actual,it.min,it.reorden)+'</td>'
-      +'<td><button class="btn-print" onclick="openMovForItem(\''+it.cod+'\')" title="Registrar movimiento"><i class="ti ti-arrows-exchange"></i></button></td>'
+      +'<td><button class="btn-print" onclick="openMovForItem(\''+it.cod+'\')" title="Registrar movimiento"><i class="ti ti-arrows-exchange"></i></button>'
+      +'<button class="btn-print" onclick="editItem(\''+it.cod+'\')" title="Editar producto" style="margin-left:4px"><i class="ti ti-pencil"></i></button></td>'
       +'</tr>';
   }).join('');
+}
+
+// Nombre legible más específico disponible para una combinación cat/subcat/subsubcat
+function taxonomiaLabel(cc,ss,tt){
+  const cat=TAXONOMIA[cc]; if(!cat) return '';
+  const sub=cat.subcats[ss]; if(!sub) return cat.nombre;
+  const nombreTT=tt?sub.subsubs[tt]:null;
+  return nombreTT||sub.nombre;
 }
 
 // Render movimientos
