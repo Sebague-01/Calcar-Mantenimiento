@@ -829,7 +829,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           </select>
         </div>
         <button class="btn-sec" onclick="openStockMasivoModal()"><i class="ti ti-file-import"></i> Carga masiva</button>
-        <button class="btn-primary" onclick="openModal('m-item')"><i class="ti ti-plus"></i> Nuevo producto</button>
+        <button class="btn-primary" onclick="openItemModal()"><i class="ti ti-plus"></i> Nuevo producto</button>
       </div>
       <div class="table-wrap">
         <table class="data-table">
@@ -1267,52 +1267,32 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   <div class="modal-box">
     <div class="modal-header"><div class="modal-title">Nuevo producto / ítem de stock</div><button class="modal-close" onclick="closeModal('m-item')"><i class="ti ti-x"></i></button></div>
     <div class="form-grid">
-      <!-- Fila 1: Código y Categoría -->
-      <div class="form-group"><label class="form-label">Código interno</label><input type="text" class="form-input mono" id="item-cod" placeholder="LUB-HID-0001"></div>
-      <div class="form-group"><label class="form-label">Categoría principal</label>
-        <select class="form-input" id="item-cat">
-          <option value="LUB">Lubricantes</option>
-          <option value="QUI">Químicos</option>
-          <option value="REP">Repuestos</option>
-          <option value="HER">Herramientas</option>
-          <option value="CON">Consumibles</option>
+      <!-- Fila 1: Categoría y Subcategoría -->
+      <div class="form-group"><label class="form-label">Categoría</label>
+        <select class="form-input" id="item-cat" onchange="onCategoriaChange()">
+          <option value="">— seleccionar —</option>
         </select>
       </div>
-      <!-- Fila 2: Subcategoría -->
-      <div class="form-group full"><label class="form-label">Subcategoría</label>
-        <select class="form-input" id="item-subcat">
-          <option value="">— seleccionar —</option>
-          <optgroup label="Lubricantes">
-            <option value="LUB-HID">Hidráulicos</option>
-            <option value="LUB-COM">Compresores</option>
-            <option value="LUB-ENG">Engranajes</option>
-            <option value="LUB-REF">Refrigeración</option>
-            <option value="LUB-GRA">Grasas</option>
-          </optgroup>
-          <optgroup label="Químicos">
-            <option value="QUI-LIM">Limpieza</option>
-            <option value="QUI-DES">Desinfectantes</option>
-            <option value="QUI-TRA">Tratamiento de agua</option>
-            <option value="QUI-SOL">Solventes</option>
-          </optgroup>
-          <optgroup label="Repuestos">
-            <option value="REP-MEC">Mecánicos</option>
-            <option value="REP-ELE">Eléctricos</option>
-            <option value="REP-NEU">Neumáticos</option>
-            <option value="REP-HID">Hidráulicos</option>
-          </optgroup>
-          <optgroup label="Herramientas">
-            <option value="HER-MAN">Manuales</option>
-            <option value="HER-ELE">Eléctricas</option>
-            <option value="HER-MED">Medición/Calibración</option>
-          </optgroup>
-          <optgroup label="Consumibles">
-            <option value="CON-ELE">Eléctricos</option>
-            <option value="CON-SOL">Soldadura</option>
-            <option value="CON-FIJ">Fijación</option>
-            <option value="CON-SEG">Seguridad (EPP)</option>
-          </optgroup>
+      <div class="form-group"><label class="form-label">Subcategoría</label>
+        <select class="form-input" id="item-subcat" onchange="onSubcategoriaChange()" disabled>
+          <option value="">— elegí categoría primero —</option>
         </select>
+      </div>
+      <!-- Fila 1b: Sub-subcategoría y Proveedor -->
+      <div class="form-group"><label class="form-label">Sub-subcategoría</label>
+        <select class="form-input" id="item-subsubcat" onchange="onSubsubcategoriaChange()" disabled>
+          <option value="">— elegí subcategoría primero —</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Proveedor</label>
+        <select class="form-input" id="item-prov-sel" onchange="onSubsubcategoriaChange()">
+          <option value="">— seleccionar —</option>
+        </select>
+      </div>
+      <!-- Fila 1c: código generado (solo lectura) -->
+      <div class="form-group full">
+        <label class="form-label">Código (se genera automáticamente)</label>
+        <input type="text" class="form-input mono" id="item-cod-preview" readonly placeholder="Se arma solo al completar categoría, subcategoría, sub-subcategoría y proveedor" style="background:#f5f5f5;color:#555">
       </div>
       <!-- Fila 3: Nombre comercial y Marca -->
       <div class="form-group"><label class="form-label">Nombre comercial</label><input type="text" class="form-input" id="item-nombre" placeholder="ej: VESTA FG-32"></div>
@@ -1333,8 +1313,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="form-group"><label class="form-label">Punto reorden</label><input type="number" class="form-input" id="item-reord" placeholder="ej: 2" min="0" step="0.01"></div>
       <!-- Fila 7: Aplicación -->
       <div class="form-group full"><label class="form-label">Aplicación principal <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-aplic" placeholder="ej: Sistemas hidráulicos con contacto incidental alimentos"></div>
-      <!-- Fila 8: Proveedor y Precio -->
-      <div class="form-group"><label class="form-label">Proveedor principal <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-prov" placeholder="ej: LUBRICENTRO SA"></div>
+      <!-- Fila 8: Precio -->
       <div class="form-group"><label class="form-label">Precio referencia <span class="form-optional">(opcional)</span></label><input type="number" class="form-input" id="item-precio" placeholder="ej: 125.00" min="0" step="0.01"></div>
       <!-- Fila 9: Ubicación por defecto -->
       <div class="form-group"><label class="form-label">Ubicación almacén <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="item-ubic" placeholder="ej: Estante A2"></div>
@@ -2194,6 +2173,377 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // Cache local (para PDFs y selects)
 const S = { ote:[], ot:[], oc:[], eq:[], prov:[], items:[], movs:[], tareas:[], ejecucs:[], inst:[], reclamos:[], funcionarios:[], docConfig:{ ote:{cod:'',rev:'',history:[]}, otc:{cod:'',rev:'',history:[]}, otp:{cod:'',rev:'',history:[]}, plan:{cod:'',rev:'',history:[]} } };
+
+// ══════════════════════════════════════
+// TAXONOMÍA DE STOCK — categoría/subcategoría/sub-subcategoría
+// ══════════════════════════════════════
+const TAXONOMIA = {
+  "01": {
+    "nombre": "Repuestos",
+    "sigla": "REP",
+    "subcats": {
+      "01": {
+        "nombre": "Mecánicos",
+        "sigla": "MEC",
+        "subsubs": {
+          "01": "Rodamientos",
+          "02": "Retenes y sellos mecánicos",
+          "03": "Empaquetaduras y juntas",
+          "04": "O-rings",
+          "05": "Correas",
+          "06": "Poleas y catarinas",
+          "07": "Cadenas de transmisión",
+          "08": "Acoplamientos",
+          "09": "Ejes y bujes",
+          "10": "Chavetas y resortes",
+          "11": "Tornillería inox",
+          "12": "Bombas centrífugas",
+          "13": "Bombas de desplazamiento positivo",
+          "14": "Separadoras centrífugas",
+          "15": "Homogeneizadores",
+          "16": "Cintas transportadoras"
+        }
+      },
+      "02": {
+        "nombre": "Válvulas de proceso",
+        "sigla": "VAL",
+        "subsubs": {
+          "01": "Válvulas manuales sanitarias",
+          "02": "Válvulas mixproof",
+          "03": "Válvulas de asiento simple/doble",
+          "04": "Actuadores neumáticos de válvula",
+          "05": "Válvulas de retención",
+          "06": "Válvulas de control"
+        }
+      },
+      "03": {
+        "nombre": "Eléctricos / electrónicos",
+        "sigla": "ELE",
+        "subsubs": {
+          "01": "Contactores",
+          "02": "Relés",
+          "03": "Guardamotores",
+          "04": "Disyuntores y fusibles",
+          "05": "Variadores de frecuencia",
+          "06": "Módulos PLC",
+          "07": "Sensores de proximidad",
+          "08": "Fotocélulas",
+          "09": "Encoders",
+          "10": "Finales de carrera",
+          "11": "Motores eléctricos",
+          "12": "Resistencias calefactoras",
+          "13": "Transformadores",
+          "14": "Pantallas HMI",
+          "15": "Baterías de respaldo",
+          "16": "Luminarias industriales",
+          "17": "Conectores y cableado industrial",
+          "18": "Fuentes de alimentación"
+        }
+      },
+      "04": {
+        "nombre": "Neumáticos",
+        "sigla": "NEU",
+        "subsubs": {
+          "01": "Electroválvulas",
+          "02": "Cilindros neumáticos",
+          "03": "Unidades FRL",
+          "04": "Racores y mangueras neumáticas",
+          "05": "Actuadores rotativos",
+          "06": "Silenciadores de escape",
+          "07": "Repuestos de compresores de aire comprimido"
+        }
+      },
+      "05": {
+        "nombre": "Hidráulicos",
+        "sigla": "HID",
+        "subsubs": {
+          "01": "Bombas hidráulicas",
+          "02": "Cilindros hidráulicos",
+          "03": "Mangueras de alta presión",
+          "04": "Válvulas direccionales",
+          "05": "Filtros hidráulicos"
+        }
+      },
+      "06": {
+        "nombre": "Instrumentación de proceso",
+        "sigla": "INS",
+        "subsubs": {
+          "01": "Transmisores de presión y temperatura",
+          "02": "Caudalímetros",
+          "03": "Sensores de nivel",
+          "04": "Sensores de conductividad",
+          "05": "Manómetros",
+          "06": "Sondas de pH",
+          "07": "Detectores de metal / rayos X",
+          "08": "Indicadores y controladores de proceso"
+        }
+      },
+      "07": {
+        "nombre": "Refrigeración (amoníaco)",
+        "sigla": "REF",
+        "subsubs": {
+          "01": "Repuestos de compresores",
+          "02": "Condensadores evaporativos",
+          "03": "Válvulas de expansión",
+          "04": "Válvulas solenoides de amoníaco",
+          "05": "Separadores de líquido",
+          "06": "Válvulas de seguridad",
+          "07": "Detección de fugas"
+        }
+      },
+      "08": {
+        "nombre": "Envasado (Tetra Pak / TBA / JBT Marel)",
+        "sigla": "ENV",
+        "subsubs": {
+          "01": "Mordazas de sellado",
+          "02": "Resistencias de sellado",
+          "03": "Fotoceldas de registro de impresión",
+          "04": "Cuchillas de corte",
+          "05": "Rodillos formadores",
+          "06": "Boquillas de llenado",
+          "07": "Válvulas de dosificación",
+          "08": "Cabezales de codificadores"
+        }
+      },
+      "09": {
+        "nombre": "Equipos móviles (montacargas)",
+        "sigla": "MOV",
+        "subsubs": {
+          "01": "Baterías de tracción",
+          "02": "Cargadores de batería",
+          "03": "Ruedas y llantas",
+          "04": "Horquillas",
+          "05": "Cilindros hidráulicos de elevación",
+          "06": "Cadenas de elevación",
+          "07": "Controladores electrónicos de tracción"
+        }
+      }
+    }
+  },
+  "02": {
+    "nombre": "Lubricantes",
+    "sigla": "LUB",
+    "subcats": {
+      "01": {
+        "nombre": "Aceites de motor / reductor",
+        "sigla": "ENG",
+        "subsubs": {
+          "01": "Aceite de motor",
+          "02": "Aceite de reductor"
+        }
+      },
+      "02": {
+        "nombre": "Aceites hidráulicos",
+        "sigla": "HID",
+        "subsubs": {
+          "01": "Aceite hidráulico"
+        }
+      },
+      "03": {
+        "nombre": "Grasas",
+        "sigla": "GRA",
+        "subsubs": {
+          "01": "Grasa alimenticia",
+          "02": "Grasa industrial"
+        }
+      },
+      "04": {
+        "nombre": "Lubricante de cadena",
+        "sigla": "CAD",
+        "subsubs": {
+          "01": "Lubricante de cadena"
+        }
+      },
+      "05": {
+        "nombre": "Aceite de compresores",
+        "sigla": "COM",
+        "subsubs": {
+          "01": "Aceite de compresores"
+        }
+      },
+      "06": {
+        "nombre": "Siliconas para sellos / o-rings",
+        "sigla": "SIL",
+        "subsubs": {
+          "01": "Silicona para sellos / o-rings"
+        }
+      }
+    }
+  },
+  "03": {
+    "nombre": "Químicos",
+    "sigla": "QUI",
+    "subcats": {
+      "01": {
+        "nombre": "Limpieza CIP (soda, ácidos)",
+        "sigla": "CIP",
+        "subsubs": {
+          "01": "Soda cáustica",
+          "02": "Ácido nítrico",
+          "03": "Ácido peracético"
+        }
+      },
+      "02": {
+        "nombre": "Desinfectantes / sanitizantes",
+        "sigla": "DES",
+        "subsubs": {
+          "01": "Desinfectantes",
+          "02": "Sanitizantes"
+        }
+      },
+      "03": {
+        "nombre": "Tratamiento de agua / calderas",
+        "sigla": "TRA",
+        "subsubs": {
+          "01": "Tratamiento de agua",
+          "02": "Tratamiento de calderas"
+        }
+      },
+      "04": {
+        "nombre": "Reactivos de laboratorio",
+        "sigla": "LAB",
+        "subsubs": {
+          "01": "Reactivos de laboratorio"
+        }
+      },
+      "05": {
+        "nombre": "Recarga de amoníaco",
+        "sigla": "AMO",
+        "subsubs": {
+          "01": "Recarga de amoníaco"
+        }
+      }
+    }
+  },
+  "04": {
+    "nombre": "Herramientas",
+    "sigla": "HER",
+    "subcats": {
+      "01": {
+        "nombre": "Herramientas manuales",
+        "sigla": "MAN",
+        "subsubs": {
+          "01": "Herramientas manuales"
+        }
+      },
+      "02": {
+        "nombre": "Herramientas eléctricas",
+        "sigla": "ELE",
+        "subsubs": {
+          "01": "Herramientas eléctricas"
+        }
+      },
+      "03": {
+        "nombre": "Instrumentos de medición",
+        "sigla": "MED",
+        "subsubs": {
+          "01": "Calibres",
+          "02": "Multímetros",
+          "03": "Pinzas amperométricas",
+          "04": "Termómetros infrarrojos"
+        }
+      },
+      "04": {
+        "nombre": "Soldadura y consumibles",
+        "sigla": "SOL",
+        "subsubs": {
+          "01": "Equipos de soldadura",
+          "02": "Consumibles de soldadura"
+        }
+      },
+      "05": {
+        "nombre": "Kits y extractores específicos de marca",
+        "sigla": "ESP",
+        "subsubs": {
+          "01": "Kits de servicio de marca",
+          "02": "Extractores específicos"
+        }
+      }
+    }
+  },
+  "05": {
+    "nombre": "Consumibles",
+    "sigla": "CON",
+    "subcats": {
+      "01": {
+        "nombre": "Limpieza (paños, escobillas)",
+        "sigla": "LIM",
+        "subsubs": {
+          "01": "Paños de limpieza",
+          "02": "Escobillas"
+        }
+      },
+      "02": {
+        "nombre": "Filtros",
+        "sigla": "FIL",
+        "subsubs": {
+          "01": "Filtros de aire",
+          "02": "Filtros de agua",
+          "03": "Filtros de aceite"
+        }
+      },
+      "03": {
+        "nombre": "Abrasivos y corte",
+        "sigla": "ABR",
+        "subsubs": {
+          "01": "Lijas",
+          "02": "Discos de corte"
+        }
+      },
+      "04": {
+        "nombre": "Adhesivos y sellantes",
+        "sigla": "ADH",
+        "subsubs": {
+          "01": "Cintas",
+          "02": "Sellantes"
+        }
+      }
+    }
+  },
+  "06": {
+    "nombre": "Elementos de protección personal",
+    "sigla": "EPP",
+    "subcats": {
+      "01": {
+        "nombre": "Guantes",
+        "sigla": "GUA",
+        "subsubs": {
+          "01": "Guantes de nitrilo",
+          "02": "Guantes anticorte",
+          "03": "Guantes térmicos"
+        }
+      },
+      "02": {
+        "nombre": "Protección auditiva",
+        "sigla": "AUD",
+        "subsubs": {
+          "01": "Protección auditiva"
+        }
+      },
+      "03": {
+        "nombre": "Protección visual",
+        "sigla": "VIS",
+        "subsubs": {
+          "01": "Protección visual"
+        }
+      },
+      "04": {
+        "nombre": "Calzado de seguridad",
+        "sigla": "CAL",
+        "subsubs": {
+          "01": "Calzado de seguridad"
+        }
+      },
+      "05": {
+        "nombre": "Trajes químicos / amoníaco",
+        "sigla": "QUI",
+        "subsubs": {
+          "01": "Trajes para amoníaco / químicos"
+        }
+      }
+    }
+  }
+};
 let convirtiendoReclamoId = null; // id del reclamo que se está convirtiendo a OTC (null si es una OTC nueva)
 
 // ── HELPERS ──
@@ -2317,7 +2667,7 @@ async function saveEq(){
 async function loadProveedores(){
   const {data,error}=await sb.from('proveedores').select('*').order('empresa');
   if(error){dbErr(error,'cargar proveedores');return;}
-  S.prov=data.map(r=>({id:r.id,emp:r.empresa,rut:r.rut,rub:r.rubro,con:r.contacto,tel:r.telefono}));
+  S.prov=data.map(r=>({id:r.id,cod:r.codigo,emp:r.empresa,rut:r.rut,rub:r.rubro,con:r.contacto,tel:r.telefono}));
   renderProv(S.prov);
 }
 
@@ -2694,51 +3044,108 @@ async function loadItems(q='',cat=''){
   renderCat(S.items);
 }
 
+// ══════════════════════════════════════
+// SELECTORES EN CASCADA — categoría → subcategoría → sub-subcategoría → proveedor
+// ══════════════════════════════════════
+function populateCategoriaSelect(){
+  const sel=g('item-cat');
+  sel.innerHTML='<option value="">— seleccionar —</option>'
+    +Object.keys(TAXONOMIA).map(cc=>'<option value="'+cc+'">'+TAXONOMIA[cc].nombre+'</option>').join('');
+}
+
+function populateProveedorSelect(){
+  const sel=g('item-prov-sel');
+  sel.innerHTML='<option value="">— seleccionar —</option>'
+    +S.prov.map(p=>'<option value="'+p.cod+'">'+p.emp+'</option>').join('');
+}
+
+function onCategoriaChange(){
+  const cc=v('item-cat');
+  const subSel=g('item-subcat'), subsubSel=g('item-subsubcat');
+  subsubSel.innerHTML='<option value="">— elegí subcategoría primero —</option>'; subsubSel.disabled=true;
+  if(!cc){ subSel.innerHTML='<option value="">— elegí categoría primero —</option>'; subSel.disabled=true; updateCodigoPreview(); return; }
+  const subcats=TAXONOMIA[cc].subcats;
+  subSel.innerHTML='<option value="">— seleccionar —</option>'
+    +Object.keys(subcats).map(ss=>'<option value="'+ss+'">'+subcats[ss].nombre+'</option>').join('');
+  subSel.disabled=false;
+  updateCodigoPreview();
+}
+
+function onSubcategoriaChange(){
+  const cc=v('item-cat'), ss=v('item-subcat');
+  const subsubSel=g('item-subsubcat');
+  if(!cc||!ss){ subsubSel.innerHTML='<option value="">— elegí subcategoría primero —</option>'; subsubSel.disabled=true; updateCodigoPreview(); return; }
+  const subsubs=TAXONOMIA[cc].subcats[ss].subsubs;
+  subsubSel.innerHTML='<option value="">— seleccionar —</option>'
+    +Object.keys(subsubs).map(tt=>'<option value="'+tt+'">'+subsubs[tt]+'</option>').join('');
+  subsubSel.disabled=false;
+  updateCodigoPreview();
+}
+
+function onSubsubcategoriaChange(){
+  updateCodigoPreview();
+}
+
+async function updateCodigoPreview(){
+  const cc=v('item-cat'), ss=v('item-subcat'), tt=v('item-subsubcat'), ppp=v('item-prov-sel');
+  const preview=g('item-cod-preview');
+  if(!cc||!ss||!tt||!ppp){ preview.value=''; return; }
+  preview.value='calculando…';
+  const {count,error}=await sb.from('stock_items').select('id',{count:'exact',head:true})
+    .eq('categoria',cc).eq('subcategoria',ss).eq('sub_subcategoria',tt).eq('proveedor_codigo',ppp);
+  if(error){ preview.value=cc+'-'+ss+'-'+tt+'-'+ppp+'-????'; return; }
+  const nnnn=String((count||0)+1).padStart(4,'0');
+  preview.value=cc+'-'+ss+'-'+tt+'-'+ppp+'-'+nnnn+' (aprox. — se confirma al guardar)';
+}
+
 async function saveItem(){
   const nombre=v('item-nombre').trim(); if(!nombre){alert('Ingresá el nombre comercial del producto.');return;}
-  const cod=v('item-cod').trim(); if(!cod){alert('Ingresá el código interno del producto.');return;}
-  const cat=v('item-cat'); const subcat=v('item-subcat');
-  
-  // Construir el objeto con solo las columnas que sabemos que existen
+  const cc=v('item-cat'); if(!cc){alert('Elegí la categoría.');return;}
+  const ss=v('item-subcat'); if(!ss){alert('Elegí la subcategoría.');return;}
+  const tt=v('item-subsubcat'); if(!tt){alert('Elegí la sub-subcategoría.');return;}
+  const ppp=v('item-prov-sel'); if(!ppp){alert('Elegí el proveedor.');return;}
+
+  const provSel=S.prov.find(p=>p.cod===ppp);
+
+  // El código lo arma el trigger de la base (asignar_codigo_stock_item) a partir
+  // de categoria/subcategoria/sub_subcategoria/proveedor_codigo — no se manda acá.
   const row={
-    codigo:cod,
-    descripcion:nombre, // Usar 'descripcion' que probablemente ya existe
-    categoria:cat,
+    descripcion:nombre,
+    nombre_comercial:nombre,
+    categoria:cc,
+    subcategoria:ss,
+    sub_subcategoria:tt,
+    proveedor_codigo:ppp,
+    proveedor_principal:provSel?provSel.emp:null,
     unidad:v('item-unidad'),
     stock_min:parseFloat(v('item-min'))||0
   };
-  
-  // Intentar agregar campos opcionales que pueden o no existir
+
   const optionalFields = {
-    nombre_comercial:nombre,
     marca:v('item-marca')||null,
-    subcategoria:subcat||null,
     modelo:v('item-modelo')||null,
     certificacion:v('item-cert')||null,
     presentacion:v('item-present')||null,
     punto_reorden:parseFloat(v('item-reord'))||0,
     aplicacion:v('item-aplic')||null,
-    proveedor_principal:v('item-prov')||null,
     precio_referencia:parseFloat(v('item-precio'))||null,
     ubicacion_almacen:v('item-ubic')||null,
     estado:v('item-estado'),
     observaciones:v('item-obs')||null,
     obs:v('item-obs')||null // Intentar con 'obs' también por si usa nombre corto
   };
-  
-  // Agregar solo los campos que tienen valor
+
   Object.keys(optionalFields).forEach(key => {
     if(optionalFields[key] !== null && optionalFields[key] !== undefined && optionalFields[key] !== ''){
       row[key] = optionalFields[key];
     }
   });
-  
+
   loading(true);
-  const {error}=await sb.from('stock_items').insert(row);
+  const {data,error}=await sb.from('stock_items').insert(row).select('codigo');
   loading(false);
   if(error){
     console.error('Error detallado:', error);
-    // Mostrar un mensaje más informativo
     if(error.message.includes('column')){
       alert('Error: La base de datos necesita actualizarse.\n\nAlgunas columnas nuevas no existen todavía.\nContactá al administrador para ejecutar el script de actualización.');
     }else{
@@ -2746,7 +3153,8 @@ async function saveItem(){
     }
     return;
   }
-  closeModal('m-item'); clr(['item-cod','item-nombre','item-marca','item-modelo','item-cert','item-present','item-min','item-reord','item-aplic','item-prov','item-precio','item-ubic','item-obs']);
+  closeModal('m-item'); clr(['item-nombre','item-marca','item-modelo','item-cert','item-present','item-min','item-reord','item-aplic','item-precio','item-ubic','item-obs']);
+  if(data&&data[0]) alert('Producto guardado con código: '+data[0].codigo);
   await loadItems();
 }
 
@@ -3704,6 +4112,11 @@ function movCant(m){
 
 // Abrir modal ítem
 function openItemModal(){
+  populateCategoriaSelect();
+  populateProveedorSelect();
+  g('item-subcat').innerHTML='<option value="">— elegí categoría primero —</option>'; g('item-subcat').disabled=true;
+  g('item-subsubcat').innerHTML='<option value="">— elegí subcategoría primero —</option>'; g('item-subsubcat').disabled=true;
+  g('item-cod-preview').value='';
   openModal('m-item');
 }
 
