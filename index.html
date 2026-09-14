@@ -1122,7 +1122,12 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       </div>
       <div class="form-section">Datos del trabajo</div>
       <div class="form-group"><label class="form-label">Equipo</label><select class="form-input" id="ot-equipo"><option value="">— seleccioná —</option></select></div>
-      <div class="form-group"><label class="form-label">Funcionario</label><select class="form-input" id="ot-tec"><option value="">— seleccioná —</option></select></div>
+      <div class="form-group"><label class="form-label">Funcionario responsable <span class="form-hint" style="display:block;font-weight:400">(firma la OTC)</span></label><select class="form-input" id="ot-tec"><option value="">— seleccioná —</option></select></div>
+      <div class="form-group full">
+        <label class="form-label">Funcionario(s) de apoyo <span class="form-optional">(opcional — trazabilidad, no firman)</span></label>
+        <div id="ot-apoyo-container"></div>
+        <button type="button" class="btn-sec" style="margin-top:8px;font-size:12px" onclick="addFuncionarioApoyoOT()"><i class="ti ti-plus"></i> Agregar funcionario de apoyo</button>
+      </div>
       <div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="ot-tipo"><option>Correctivo</option><option>Predictivo</option></select></div>
       <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="ot-prio"><option>Normal</option><option>Alta</option><option>Urgente</option><option>Baja</option></select></div>
       <div class="form-group"><label class="form-label">Estado</label><select class="form-input" id="ot-estado"><option>Pendiente</option><option>En proceso</option><option>Completada</option><option>Cancelada</option></select></div>
@@ -2779,7 +2784,7 @@ async function loadOTC(q='',est='',tipo=''){
   if(q) query=query.or('numero.ilike.%'+q+'%,equipo.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar OTC');return;}
-  S.ot=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,cod:r.cod_doc,eq:r.equipo,equipoId:r.equipo_id||null,tec:r.tecnico,tipo:r.tipo,prio:r.prioridad,estado:r.estado,hs:r.horas_est,horaIni:r.hora_ini,horaFin:r.hora_fin,desc:r.descripcion,obs:r.observaciones,otpEjecId:r.otp_ejec_id||null}));
+  S.ot=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,cod:r.cod_doc,eq:r.equipo,equipoId:r.equipo_id||null,tec:r.tecnico,tecnicosApoyo:r.tecnicos_apoyo||[],tipo:r.tipo,prio:r.prioridad,estado:r.estado,hs:r.horas_est,horaIni:r.hora_ini,horaFin:r.hora_fin,desc:r.descripcion,obs:r.observaciones,otpEjecId:r.otp_ejec_id||null}));
   renderOT(S.ot);
 }
 
@@ -2787,7 +2792,7 @@ async function saveOT(){
   const cod=getCodLabel('otc');
   const equipoId=equipoIdSeleccionado('ot-equipo');
   const estadoNuevo=v('ot-estado');
-  const row={numero:v('ot-num'),fecha:v('ot-fecha'),cod_doc:cod||null,equipo:v('ot-equipo')||null,equipo_id:equipoId,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:estadoNuevo,horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
+  const row={numero:v('ot-num'),fecha:v('ot-fecha'),cod_doc:cod||null,equipo:v('ot-equipo')||null,equipo_id:equipoId,tecnico:v('ot-tec')||null,tecnicos_apoyo:getFuncionariosApoyoOT(),tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:estadoNuevo,horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
   loading(true);
   const {data,error}=await sb.from('otc').insert(row).select();
   if(error){loading(false);dbErr(error,'guardar OTC');return;}
@@ -2820,6 +2825,7 @@ async function saveOT(){
   loading(false);
   closeModal('m-ot'); clr(['ot-tec','ot-hs','ot-hora-ini','ot-hora-fin','ot-desc','ot-obs']);
   g('ot-insumos-container').innerHTML=''; otInsumoCount=0;
+  g('ot-apoyo-container').innerHTML=''; otApoyoCount=0;
   await loadOTC(); updateDash();
   if(estadoNuevo==='Completada') await Promise.all([loadItems(),loadMovs()]);
 }
@@ -3757,6 +3763,8 @@ async function openModal(id){
     // Insumos: arranca vacío y destrabado (OTC nueva nunca está Completada)
     g('ot-insumos-container').innerHTML=''; otInsumoCount=0;
     setInsumosOTLock(false);
+    // Funcionarios de apoyo: arranca vacío
+    g('ot-apoyo-container').innerHTML=''; otApoyoCount=0;
     updateCodDisplay('otc');
   }
   if(id==='m-equipo'){
@@ -3994,6 +4002,7 @@ async function printOT(idx){
   const infoHTML=
     pf('Equipo',o.eq)+
     pf('Funcionario responsable',o.tec)+
+    pf('Funcionario(s) de apoyo',(o.tecnicosApoyo&&o.tecnicosApoyo.length)?o.tecnicosApoyo.join(', '):'—')+
     pf('Tipo',o.tipo)+
     pf('Prioridad',ppbPrio(o.prio))+
     pf('Estado',ppbEst(o.estado))+
@@ -4053,7 +4062,8 @@ function renderOT(arr){
   tb.innerHTML=arr.map(o=>{const mi=S.ot.findIndex(x=>x.id===o.id);
     const otp=o.otpEjecId?S.ejecucs.find(e=>e.id===o.otpEjecId):null;
     const otpBadge=otp?'<div style="font-size:10px;color:#1D9E75;margin-top:2px;white-space:nowrap"><i class="ti ti-link" style="font-size:10px"></i> '+otp.num+'</div>':(o.otpEjecId?'<div style="font-size:10px;color:#aaa;margin-top:2px">OTP vinculada</div>':'');
-    return '<tr><td><span class="mono">'+o.num+'</span>'+otpBadge+'</td><td style="color:#888">'+o.fecha+'</td><td>'+(o.eq||'—')+'</td><td>'+(o.tec||'—')+'</td><td><span class="badge b-gray">'+o.tipo+'</span></td><td>'+bPrio(o.prio)+'</td><td>'+bEst(o.estado)+'</td><td style="white-space:nowrap"><button onclick="printOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button><button onclick="editOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button></td></tr>';
+    const apoyoTxt=(o.tecnicosApoyo&&o.tecnicosApoyo.length)?'<div style="font-size:10px;color:#999;margin-top:2px">+ '+o.tecnicosApoyo.join(', ')+'</div>':'';
+    return '<tr><td><span class="mono">'+o.num+'</span>'+otpBadge+'</td><td style="color:#888">'+o.fecha+'</td><td>'+(o.eq||'—')+'</td><td>'+(o.tec||'—')+apoyoTxt+'</td><td><span class="badge b-gray">'+o.tipo+'</span></td><td>'+bPrio(o.prio)+'</td><td>'+bEst(o.estado)+'</td><td style="white-space:nowrap"><button onclick="printOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#fff3f3;border:1px solid #f5c6c6;cursor:pointer;color:#A32D2D;font-size:11px;font-weight:600;font-family:inherit;margin-right:3px">PDF</button><button onclick="editOT('+mi+')" style="padding:3px 8px;border-radius:6px;background:#e6f1fb;border:1px solid #a8c8f0;cursor:pointer;color:#185FA5;font-size:11px;font-weight:600;font-family:inherit">Editar</button></td></tr>';
   }).join('');
 }
 function renderEq(arr){
@@ -4847,6 +4857,37 @@ function addInsumo(codVal='',cant=''){
 // Insumos usados en OT (OTC por ahora) — se guardan como
 // movimientos de stock recién al marcar la OT como Completada
 // ══════════════════════════════════════
+// Funcionarios de apoyo en OTC — fila repetible (mismo patrón que insumos usados).
+// El valor guardado es el nombreCompleto (texto), igual que el select de responsable,
+// ya que 'tecnico' tampoco es FK a funcionarios.
+let otApoyoCount=0;
+function addFuncionarioApoyoOT(nombreVal=''){
+  otApoyoCount++;
+  const div=document.createElement('div');
+  div.style.cssText='display:grid;grid-template-columns:1fr 28px;gap:8px;margin-bottom:6px;align-items:center';
+  let opts='<option value="">— seleccioná —</option>';
+  S.funcionarios.filter(f=>f.activo).forEach(f=>{
+    const sel=f.nombreCompleto===nombreVal?'selected':'';
+    opts+='<option value="'+f.nombreCompleto+'" '+sel+'>'+f.nombreCompleto+(f.subsector?' — '+f.subsector:'')+'</option>';
+  });
+  div.innerHTML=
+    '<select class="form-input" style="font-size:12px">'+opts+'</select>'
+    +'<button type="button" onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:18px;line-height:1">×</button>';
+  g('ot-apoyo-container').appendChild(div);
+}
+// Devuelve los nombres seleccionados como apoyo, sin vacíos, sin duplicados
+// y excluyendo al funcionario responsable (no puede ser apoyo de sí mismo).
+function getFuncionariosApoyoOT(){
+  const principal=v('ot-tec');
+  const rows=g('ot-apoyo-container').children;
+  const result=[];
+  for(const r of rows){
+    const sel=r.querySelector('select');
+    if(sel&&sel.value&&sel.value!==principal&&!result.includes(sel.value)) result.push(sel.value);
+  }
+  return result;
+}
+
 let otInsumoCount=0;
 function addInsumoOT(containerId,codVal='',cant=''){
   otInsumoCount++;
@@ -6169,12 +6210,15 @@ async function editOT(idx){
   g('ot-insumos-container').innerHTML=''; otInsumoCount=0;
   const yaCompletadaAlAbrir=o.estado==='Completada';
   setInsumosOTLock(yaCompletadaAlAbrir);
+  // Funcionarios de apoyo: precargar los ya guardados
+  g('ot-apoyo-container').innerHTML=''; otApoyoCount=0;
+  (o.tecnicosApoyo||[]).forEach(nombre=>addFuncionarioApoyoOT(nombre));
   const btn=g('m-ot').querySelector('.btn-primary');
   btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
   btn.onclick=async()=>{
     const equipoId=equipoIdSeleccionado('ot-equipo');
     const estadoNuevo=v('ot-estado');
-    const row={equipo:v('ot-equipo')||null,equipo_id:equipoId,tecnico:v('ot-tec')||null,tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:estadoNuevo,horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
+    const row={equipo:v('ot-equipo')||null,equipo_id:equipoId,tecnico:v('ot-tec')||null,tecnicos_apoyo:getFuncionariosApoyoOT(),tipo:v('ot-tipo'),prioridad:v('ot-prio'),estado:estadoNuevo,horas_est:v('ot-hs')||null,hora_ini:v('ot-hora-ini')||null,hora_fin:v('ot-hora-fin')||null,descripcion:v('ot-desc')||null,observaciones:v('ot-obs')||null,otp_ejec_id:v('ot-otp-sel')||null};
     loading(true);
     const {error}=await sb.from('otc').update(row).eq('id',o.id);
     if(error){loading(false);dbErr(error,'guardar OTC');return;}
@@ -6561,7 +6605,7 @@ async function generarReporteIntervenciones() {
         tipo: 'OTC', num: r.numero, fecha: r.fecha,
         equipo: r.equipo || '—', desc: r.descripcion || '',
         estado: r.estado, extra: {
-          tecnico: r.tecnico, tipo_trabajo: r.tipo,
+          tecnico: r.tecnico, tecnicos_apoyo: r.tecnicos_apoyo||[], tipo_trabajo: r.tipo,
           prioridad: r.prioridad, horas: r.horas_est,
           hora_ini: r.hora_ini, hora_fin: r.hora_fin,
           obs: r.observaciones,
@@ -6686,6 +6730,7 @@ function imprimirReporte() {
       const lineas = [
         e.tipo_trabajo ? `<b>Tipo:</b> ${e.tipo_trabajo}` : '',
         e.tecnico ? `<b>Funcionario:</b> ${e.tecnico}` : '',
+        (e.tecnicos_apoyo && e.tecnicos_apoyo.length) ? `<b>Apoyo:</b> ${e.tecnicos_apoyo.join(', ')}` : '',
         e.prioridad ? `<b>Prioridad:</b> ${e.prioridad}` : '',
         e.horas ? `<b>Horas est.:</b> ${e.horas}` : '',
         (e.hora_ini && e.hora_fin) ? `<b>Horario:</b> ${e.hora_ini} – ${e.hora_fin}` : '',
