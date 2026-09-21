@@ -1533,9 +1533,12 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
       <div class="form-section">Pasos / Checkpoints</div>
       <div class="form-group full">
-        <label class="form-label">Pasos que el operario debe verificar</label>
+        <label class="form-label">Pasos que el operario debe verificar <span class="form-optional">(agrupá con secciones si querés subdividir, ej: "Motor" → sus pasos)</span></label>
         <div id="checks-container"></div>
-        <button type="button" class="btn-sec" style="margin-top:8px;font-size:12px" onclick="addCheck()"><i class="ti ti-plus"></i> Agregar paso</button>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" class="btn-sec" style="font-size:12px" onclick="addCheck()"><i class="ti ti-plus"></i> Agregar paso</button>
+          <button type="button" class="btn-sec" style="font-size:12px" onclick="addTitulo()"><i class="ti ti-folder-plus"></i> Agregar sección</button>
+        </div>
       </div>
 
       <div class="form-section">Insumos requeridos</div>
@@ -4392,7 +4395,7 @@ function renderPlan(arr){
     return '<tr>'
       +'<td><span class="mono">'+t.cod+'</span></td>'
       +'<td>'+t.equipo+'</td>'
-      +'<td>'+t.desc+'<div style="font-size:11px;color:#aaa;margin-top:2px">'+t.checks.length+' pasos · '+(t.insumos.length?t.insumos.length+' insumos':'sin insumos')+'</div></td>'
+      +'<td>'+t.desc+'<div style="font-size:11px;color:#aaa;margin-top:2px">'+(()=>{const c=contarPasos(t.checks);return c.pasos+' pasos'+(c.secciones?' en '+c.secciones+' secc.':'');})()+' · '+(t.insumos.length?t.insumos.length+' insumos':'sin insumos')+'</div></td>'
       +'<td><span class="badge b-blue">'+t.freq+'</span></td>'
       +'<td style="font-size:12px;font-weight:600;color:'+fColor+'">'+fLabel+'</td>'
       +'<td style="color:#888">'+(t.tiempo||'—')+'</td>'
@@ -4818,18 +4821,63 @@ function showPrevTab(t){
   if(t==='calendario') renderCalendario();
 }
 
-// Checkpoints dinámicos en modal tarea
-let checkCount=0;
-function addCheck(val=''){
-  checkCount++;
-  const id='chk-'+checkCount;
-  const div=document.createElement('div');
-  div.style.cssText='display:flex;gap:8px;margin-bottom:6px;align-items:center';
-  div.innerHTML='<span style="color:#aaa;font-size:12px;min-width:18px">'+checkCount+'.</span>'
-    +'<input type="text" class="form-input" id="'+id+'" placeholder="Descripción del paso..." value="'+val+'" style="flex:1">'
-    +'<button type="button" onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:18px">×</button>';
-  g('checks-container').appendChild(div);
+// Checkpoints dinámicos en modal tarea — soporta pasos sueltos y secciones (títulos)
+// que agrupan pasos con numeración jerárquica (1. / 1.1 / 1.2 / 2. / 2.1...).
+let currentChecks=[]; // [{tipo:'paso'|'titulo', texto:''}]
+
+function escAttr(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 }
+
+// Calcula la numeración jerárquica de un array de checks.
+// Acepta también checks "viejos" (strings sueltos, sin tipo) para compatibilidad
+// con tareas guardadas antes de este cambio — se tratan como 'paso'.
+function numerarChecks(checks){
+  let sec=0, pasoSuelto=0, pasoSec=0;
+  return (checks||[]).map(c=>{
+    const item=(typeof c==='string')?{tipo:'paso',texto:c}:{tipo:c.tipo||'paso',texto:c.texto||''};
+    let label;
+    if(item.tipo==='titulo'){ sec++; pasoSec=0; label=sec+'.'; }
+    else if(sec===0){ pasoSuelto++; label=String(pasoSuelto); }
+    else { pasoSec++; label=sec+'.'+pasoSec; }
+    return {tipo:item.tipo, texto:item.texto, label};
+  });
+}
+
+function renderChecksUI(){
+  const cont=g('checks-container');
+  cont.innerHTML='';
+  numerarChecks(currentChecks).forEach((item,idx)=>{
+    const div=document.createElement('div');
+    if(item.tipo==='titulo'){
+      div.style.cssText='display:flex;gap:8px;margin:10px 0 6px;align-items:center';
+      div.innerHTML='<span style="color:#185FA5;font-size:12px;font-weight:700;min-width:26px">'+item.label+'</span>'
+        +'<input type="text" class="form-input" placeholder="Título de sección (ej: Motor)" value="'+escAttr(item.texto)+'" style="flex:1;font-weight:700;background:#f0f4ff;border-color:#a8c8f0" oninput="currentChecks['+idx+'].texto=this.value">'
+        +'<button type="button" onclick="removeCheckRow('+idx+')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:18px">×</button>';
+    } else {
+      const indent=item.label.includes('.')?'22px':'0';
+      div.style.cssText='display:flex;gap:8px;margin-bottom:6px;align-items:center;padding-left:'+indent;
+      div.innerHTML='<span style="color:#aaa;font-size:12px;min-width:26px">'+item.label+'</span>'
+        +'<input type="text" class="form-input" placeholder="Descripción del paso..." value="'+escAttr(item.texto)+'" style="flex:1" oninput="currentChecks['+idx+'].texto=this.value">'
+        +'<button type="button" onclick="removeCheckRow('+idx+')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:18px">×</button>';
+    }
+    cont.appendChild(div);
+  });
+}
+
+// Cuenta pasos reales y secciones dentro de un array de checks (para resúmenes en listados)
+function contarPasos(checks){
+  let pasos=0, secciones=0;
+  (checks||[]).forEach(c=>{
+    const tipo=(typeof c==='string')?'paso':(c.tipo||'paso');
+    if(tipo==='titulo') secciones++; else pasos++;
+  });
+  return {pasos,secciones};
+}
+
+function addCheck(texto=''){ currentChecks.push({tipo:'paso',texto}); renderChecksUI(); }
+function addTitulo(texto=''){ currentChecks.push({tipo:'titulo',texto}); renderChecksUI(); }
+function removeCheckRow(idx){ currentChecks.splice(idx,1); renderChecksUI(); }
 
 // Insumos dinámicos en modal tarea — seleccionados del catálogo de stock
 let insumoCount=0;
@@ -4956,9 +5004,9 @@ async function consumirInsumosOT(insumos,equipoId,tipoOrigen,otId,otNumero){
   return true;
 }
 
-// Leer checkpoints del modal
+// Leer checkpoints del modal — devuelve [{tipo, texto}], sin filas vacías
 function getChecks(){
-  return Array.from(g('checks-container').querySelectorAll('input[type="text"]')).map(i=>i.value.trim()).filter(Boolean);
+  return currentChecks.map(c=>({tipo:c.tipo||'paso',texto:(c.texto||'').trim()})).filter(c=>c.texto);
 }
 // Leer insumos del modal — ahora lee select + input cantidad
 function getInsumos(){
@@ -4981,9 +5029,8 @@ function getInsumos(){
 function openTareaModal(){
   fillSel('tar-equipo',S.eq,'nom');
   attachEquipoIds('tar-equipo');
-  g('checks-container').innerHTML='';
   g('insumos-container').innerHTML='';
-  checkCount=0; insumoCount=0;
+  currentChecks=[]; insumoCount=0;
   addCheck();
   syncInstSelect();
   // Limpiar preview instrucción
@@ -5028,11 +5075,11 @@ function openEditTareaModal(idx){
   g('tar-inst-sel').value = t.instCod||'';
   g('tar-inst-preview').style.display='none';
 
-  // Precargar checks
-  g('checks-container').innerHTML='';
-  checkCount=0;
-  if(t.checks&&t.checks.length) t.checks.forEach(c=>addCheck(c));
-  else addCheck();
+  // Precargar checks (soporta tareas viejas con checks como strings sueltos)
+  currentChecks=(t.checks&&t.checks.length)
+    ? t.checks.map(c=>typeof c==='string'?{tipo:'paso',texto:c}:{tipo:c.tipo||'paso',texto:c.texto||''})
+    : [{tipo:'paso',texto:''}];
+  renderChecksUI();
 
   // Precargar insumos
   g('insumos-container').innerHTML='';
@@ -5173,8 +5220,11 @@ function buildPrevPDF(tarea, ejec, insumosOverride){
     pf('Umbral horómetro',tarea.hs?tarea.hs+' hs':'—')+
     pf('Tiempo estimado',tarea.tiempo||'—');
 
-  const checks=tarea.checks.length?tarea.checks:['(sin pasos definidos)'];
-  const checksHTML=checks.map(c=>'<tr><td><span class="check-box"></span></td><td>'+c+'</td><td></td></tr>').join('');
+  const checks=tarea.checks.length?numerarChecks(tarea.checks):[{tipo:'paso',texto:'(sin pasos definidos)',label:''}];
+  const checksHTML=checks.map(c=>c.tipo==='titulo'
+    ?'<tr><td colspan="3" style="background:#f0f4ff;font-weight:700;padding:6pt 8pt;border-bottom:1pt solid #d8e6f3">'+c.label+' '+c.texto+'</td></tr>'
+    :'<tr><td><span class="check-box"></span></td><td><span style="color:#aaa;font-size:8pt;margin-right:4pt">'+c.label+'</span>'+c.texto+'</td><td></td></tr>'
+  ).join('');
 
   const ins=insumosOverride?insumosOverride:(tarea.insumos.length?tarea.insumos:[{cod:'',desc:'(sin insumos definidos)',cant:''}]);
   const insumosHTML=ins.map(i=>'<tr><td>'+(i.cod?'<span style="font-family:Courier New,monospace;font-size:9pt;color:#888">'+i.cod+'</span> ':'')+i.desc+'</td><td>'+i.cant+'</td><td></td></tr>').join('');
@@ -5777,9 +5827,8 @@ function applyInst(inst){
   if(inst.proc){
     const pasos=parsePasos(inst.proc);
     if(pasos.length>0){
-      g('checks-container').innerHTML='';
-      checkCount=0;
-      pasos.forEach(p=>addCheck(p));
+      currentChecks=pasos.map(p=>({tipo:'paso',texto:p}));
+      renderChecksUI();
     }
   }
 }
@@ -6981,13 +7030,16 @@ function buildPlanReportHTML(d, opts){
       <div style="margin-top:20pt;border-top:1.5pt solid #1D9E75;padding-top:12pt;break-before:page">
         <div style="font-size:11pt;font-weight:700;margin-bottom:10pt;color:#1a1a18">Descripción de instrucciones de mantenimiento</div>
         ${tareasConPasos.map(t=>{
-          const pasos = t.checks||[];
+          const pasos = numerarChecks(t.checks||[]);
           const instCod = t.inst_cod||'';
           return `<div style="margin-bottom:10pt;break-inside:avoid">
             <div style="font-family:monospace;font-size:9pt;font-weight:700;color:#7B4FBE;margin-bottom:2pt">${t.codigo||'—'}${instCod?` (${instCod})`:''} — ${t.descripcion||''}</div>
-            <ol style="margin:0;padding-left:16pt;font-size:8pt;color:#444;line-height:1.6">
-              ${pasos.map(p=>`<li>${p}</li>`).join('')}
-            </ol>
+            <div style="margin:0;padding-left:4pt;font-size:8pt;color:#444;line-height:1.6">
+              ${pasos.map(p=>p.tipo==='titulo'
+                ?`<div style="font-weight:700;margin-top:4pt">${p.label} ${p.texto}</div>`
+                :`<div style="padding-left:${p.label.includes('.')?'14pt':'0'}"><span style="color:#999;margin-right:3pt">${p.label}</span>${p.texto}</div>`
+              ).join('')}
+            </div>
           </div>`;
         }).join('')}
       </div>`;
