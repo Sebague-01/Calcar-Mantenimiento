@@ -825,6 +825,9 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           <select id="f-cat-prov" onchange="filterCat()">
             <option value="">Todos los proveedores</option>
           </select>
+          <select id="f-cat-maquina" onchange="filterCat()">
+            <option value="">Todas las máquinas</option>
+          </select>
           <select id="f-cat-estado" onchange="filterCat()">
             <option value="">Todos los estados</option>
             <option value="OK">Stock OK</option>
@@ -1276,32 +1279,62 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   <div class="modal-box">
     <div class="modal-header"><div class="modal-title" id="item-modal-title">Nuevo producto / ítem de stock</div><button class="modal-close" onclick="closeModal('m-item')"><i class="ti ti-x"></i></button></div>
     <div class="form-grid">
-      <!-- Fila 1: Categoría y Subcategoría -->
-      <div class="form-group"><label class="form-label">Categoría</label>
+      <!-- Modo de codificación -->
+      <div class="form-group full">
+        <label class="form-label">¿Cómo se codifica este ítem?</label>
+        <div style="display:flex;gap:20px;margin-top:4px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+            <input type="radio" name="item-origen" id="item-origen-interno" value="interno" checked onchange="onOrigenCodigoChange()"> Esquema general (categoría / subcategoría / proveedor)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+            <input type="radio" name="item-origen" id="item-origen-fabricante" value="fabricante" onchange="onOrigenCodigoChange()"> Número de parte de fábrica (TBA8 / Stork / ESSI)
+          </label>
+        </div>
+      </div>
+      <!-- Fila 1: Categoría y Subcategoría (modo esquema general) -->
+      <div class="form-group" id="fg-item-cat"><label class="form-label">Categoría</label>
         <select class="form-input" id="item-cat" onchange="onCategoriaChange()">
           <option value="">— seleccionar —</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Subcategoría</label>
+      <div class="form-group" id="fg-item-subcat"><label class="form-label">Subcategoría</label>
         <select class="form-input" id="item-subcat" onchange="onSubcategoriaChange()" disabled>
           <option value="">— elegí categoría primero —</option>
         </select>
       </div>
       <!-- Fila 1b: Sub-subcategoría y Proveedor -->
-      <div class="form-group"><label class="form-label">Sub-subcategoría</label>
+      <div class="form-group" id="fg-item-subsubcat"><label class="form-label">Sub-subcategoría</label>
         <select class="form-input" id="item-subsubcat" onchange="onSubsubcategoriaChange()" disabled>
           <option value="">— elegí subcategoría primero —</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Proveedor</label>
+      <div class="form-group" id="fg-item-prov-sel"><label class="form-label">Proveedor</label>
         <select class="form-input" id="item-prov-sel" onchange="onSubsubcategoriaChange()">
           <option value="">— seleccionar —</option>
         </select>
       </div>
       <!-- Fila 1c: código generado (solo lectura) -->
-      <div class="form-group full">
+      <div class="form-group full" id="fg-item-cod-preview">
         <label class="form-label">Código (se genera automáticamente)</label>
         <input type="text" class="form-input mono" id="item-cod-preview" readonly placeholder="Se arma solo al completar categoría, subcategoría, sub-subcategoría y proveedor" style="background:#f5f5f5;color:#555">
+      </div>
+      <!-- Máquina(s) — solo en modo esquema general, opcional, 0 a N -->
+      <div class="form-group full" id="fg-item-maquinas-multi">
+        <label class="form-label">Máquina(s) grande(s) <span class="form-optional">(opcional — si este ítem se usa en TBA8/Stork/ESSI aunque no sea un repuesto exclusivo)</span></label>
+        <div id="item-maquinas-multi-container" style="margin-top:4px"></div>
+      </div>
+      <!-- Modo P/N de fábrica -->
+      <div class="form-group" id="fg-item-maquina-pn" style="display:none"><label class="form-label">Máquina</label>
+        <select class="form-input" id="item-maquina-pn" onchange="onMaquinaPNChange()">
+          <option value="">— seleccionar —</option>
+        </select>
+      </div>
+      <div class="form-group" id="fg-item-cod-pn" style="display:none"><label class="form-label">Código (número de parte del proveedor)</label>
+        <input type="text" class="form-input mono" id="item-cod-pn" placeholder="ej: 1234567-01">
+      </div>
+      <div class="form-group full" id="fg-item-prov-pn-display" style="display:none">
+        <label class="form-label">Proveedor</label>
+        <input type="text" class="form-input" id="item-prov-pn-display" readonly style="background:#f5f5f5;color:#555">
       </div>
       <!-- Fila 3: Nombre comercial y Marca -->
       <div class="form-group"><label class="form-label">Nombre comercial</label><input type="text" class="form-input" id="item-nombre" placeholder="ej: VESTA FG-32"></div>
@@ -2185,7 +2218,7 @@ const SUPA_KEY = 'sb_publishable_yEWkPu9QXrcMEQD1HqEXqg_XVJ3QTfx';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // Cache local (para PDFs y selects)
-const S = { ote:[], ot:[], oc:[], eq:[], prov:[], items:[], movs:[], tareas:[], ejecucs:[], inst:[], reclamos:[], funcionarios:[], docConfig:{ ote:{cod:'',rev:'',history:[]}, otc:{cod:'',rev:'',history:[]}, otp:{cod:'',rev:'',history:[]}, plan:{cod:'',rev:'',history:[]} } };
+const S = { ote:[], ot:[], oc:[], eq:[], prov:[], items:[], movs:[], tareas:[], ejecucs:[], inst:[], reclamos:[], funcionarios:[], maq:[], docConfig:{ ote:{cod:'',rev:'',history:[]}, otc:{cod:'',rev:'',history:[]}, otp:{cod:'',rev:'',history:[]}, plan:{cod:'',rev:'',history:[]} } };
 
 // ══════════════════════════════════════
 // TAXONOMÍA DE STOCK — categoría/subcategoría/sub-subcategoría
@@ -2623,10 +2656,11 @@ async function showApp(){
     loadOTE(), loadOTC(), loadOC(),
     loadItems(), loadMovs(),
     loadTareas(), loadEjecucs(), loadInst(), loadEventos(), loadLecturas(),
-    loadReclamos()
+    loadReclamos(), loadMaquinasGrandes()
   ]);
   populateCategoriaFilterSelect();
   populateProveedorFilterSelect();
+  populateMaquinaFilterSelect();
   syncTaxonomyFilters();
   await loadPlan();
   fillOtpSel();
@@ -2675,6 +2709,12 @@ async function saveEq(){
   if(error){dbErr(error,'guardar equipo');return;}
   closeModal('m-equipo'); clr(['eq-cod','eq-nom','eq-ubic','eq-marca','eq-modelo','eq-anio','eq-serie']);
   await loadEquipos();
+}
+
+async function loadMaquinasGrandes(){
+  const {data,error}=await sb.from('maquinas_grandes').select('*').order('nombre');
+  if(error){dbErr(error,'cargar máquinas grandes');return;}
+  S.maq=data.map(r=>({cod:r.cod,nom:r.nombre,provCod:r.proveedor_codigo}));
 }
 
 // ══════════════════════════════════════
@@ -3030,12 +3070,19 @@ function imprimirReclamo(idx){
 // STOCK — Ítems
 // ══════════════════════════════════════
 async function loadItems(opts={}){
-  const {q='',cc='',ss='',tt='',prov=''}=opts;
+  const {q='',cc='',ss='',tt='',prov='',maquina=''}=opts;
   let query=sb.from('stock_actual').select('*').order('codigo');
   if(cc) query=query.eq('categoria',cc);
   if(ss) query=query.eq('subcategoria',ss);
   if(tt) query=query.eq('sub_subcategoria',tt);
   if(prov) query=query.eq('proveedor_codigo',prov);
+  if(maquina){
+    const {data:rel,error:errRel}=await sb.from('stock_items_maquinas').select('item_id').eq('maquina_cod',maquina);
+    if(errRel){ dbErr(errRel,'filtrar por máquina'); return; }
+    const ids=(rel||[]).map(r=>r.item_id);
+    if(!ids.length){ S.items=[]; renderCat(S.items); return; }
+    query=query.in('id',ids);
+  }
   if(q) query=query.or('codigo.ilike.%'+q+'%,nombre_comercial.ilike.%'+q+'%,marca.ilike.%'+q+'%');
   const {data,error}=await query;
   if(error){dbErr(error,'cargar stock');return;}
@@ -3046,6 +3093,7 @@ async function loadItems(opts={}){
     subcat:r.subcategoria,
     subsubcat:r.sub_subcategoria,
     provcod:r.proveedor_codigo,
+    origenCodigo:r.origen_codigo||'interno',
     desc:r.nombre_comercial||r.descripcion,
     marca:r.marca,
     modelo:r.modelo,
@@ -3123,20 +3171,7 @@ async function updateCodigoPreview(){
 
 async function saveItem(){
   const nombre=v('item-nombre').trim(); if(!nombre){alert('Ingresá el nombre comercial del producto.');return;}
-  const cc=v('item-cat'); if(!cc){alert('Elegí la categoría.');return;}
-  const ss=v('item-subcat'); if(!ss){alert('Elegí la subcategoría.');return;}
-  const tt=v('item-subsubcat'); if(!tt){alert('Elegí la sub-subcategoría.');return;}
-  const ppp=v('item-prov-sel'); if(!ppp){alert('Elegí el proveedor.');return;}
-
-  const provSel=S.prov.find(p=>p.cod===ppp);
-
-  const row={
-    descripcion:nombre,
-    nombre_comercial:nombre,
-    proveedor_principal:provSel?provSel.emp:null,
-    unidad:v('item-unidad'),
-    stock_min:parseFloat(v('item-min'))||0
-  };
+  const modo=document.querySelector('input[name="item-origen"]:checked').value;
 
   const optionalFields = {
     marca:v('item-marca')||null,
@@ -3151,6 +3186,72 @@ async function saveItem(){
     observaciones:v('item-obs')||null,
     obs:v('item-obs')||null
   };
+
+  // ══════════════════════════════════════
+  // MODO P/N DE FÁBRICA — TBA8/Stork/ESSI
+  // ══════════════════════════════════════
+  if(modo==='fabricante'){
+    const maqCod=v('item-maquina-pn'); if(!maqCod){alert('Elegí la máquina.');return;}
+    const codPn=v('item-cod-pn').trim(); if(!codPn){alert('Ingresá el número de parte del proveedor.');return;}
+    const maq=S.maq.find(m=>m.cod===maqCod);
+    const provSel=maq?S.prov.find(p=>p.cod===maq.provCod):null;
+
+    const row={
+      descripcion:nombre,
+      nombre_comercial:nombre,
+      proveedor_principal:provSel?provSel.emp:null,
+      unidad:v('item-unidad'),
+      stock_min:parseFloat(v('item-min'))||0,
+      origen_codigo:'fabricante',
+      codigo:codPn,
+      // Sin categoría/subcategoría/sub-subcategoría/proveedor_codigo/correlativo —
+      // el trigger respeta el código tal cual cuando origen_codigo='fabricante'.
+      categoria:null, subcategoria:null, sub_subcategoria:null, proveedor_codigo:null, correlativo:null
+    };
+    Object.keys(optionalFields).forEach(key=>{
+      if(optionalFields[key]!==null && optionalFields[key]!==undefined && optionalFields[key]!==''){ row[key]=optionalFields[key]; }
+    });
+
+    loading(true);
+    let itemId, codigoFinal;
+    if(editingItemId){
+      const {data,error}=await sb.from('stock_items').update(row).eq('id',editingItemId).select('id,codigo');
+      if(error){ loading(false); dbErr(error,'actualizar producto'); return; }
+      itemId=editingItemId; codigoFinal=data&&data[0]?data[0].codigo:codPn;
+    }else{
+      const {data,error}=await sb.from('stock_items').insert(row).select('id,codigo');
+      if(error){ loading(false); dbErr(error,'guardar producto'); return; }
+      itemId=data&&data[0]?data[0].id:null; codigoFinal=data&&data[0]?data[0].codigo:codPn;
+    }
+    if(itemId) await guardarMaquinasDelItem(itemId,[maqCod]);
+    loading(false);
+    closeModal('m-item'); clr(['item-nombre','item-marca','item-modelo','item-cert','item-present','item-min','item-reord','item-aplic','item-precio','item-ubic','item-obs','item-cod-pn']);
+    const eraEdicion=!!editingItemId;
+    editingItemId=null; editingItemOriginal=null;
+    if(!eraEdicion) alert('Producto guardado con código: '+codigoFinal);
+    await loadItems();
+    return;
+  }
+
+  // ══════════════════════════════════════
+  // MODO ESQUEMA GENERAL (el de siempre)
+  // ══════════════════════════════════════
+  const cc=v('item-cat'); if(!cc){alert('Elegí la categoría.');return;}
+  const ss=v('item-subcat'); if(!ss){alert('Elegí la subcategoría.');return;}
+  const tt=v('item-subsubcat'); if(!tt){alert('Elegí la sub-subcategoría.');return;}
+  const ppp=v('item-prov-sel'); if(!ppp){alert('Elegí el proveedor.');return;}
+
+  const provSel=S.prov.find(p=>p.cod===ppp);
+  const maquinasSel=getMaquinasChecklistSeleccionadas();
+
+  const row={
+    descripcion:nombre,
+    nombre_comercial:nombre,
+    proveedor_principal:provSel?provSel.emp:null,
+    unidad:v('item-unidad'),
+    stock_min:parseFloat(v('item-min'))||0,
+    origen_codigo:'interno'
+  };
   Object.keys(optionalFields).forEach(key => {
     if(optionalFields[key] !== null && optionalFields[key] !== undefined && optionalFields[key] !== ''){
       row[key] = optionalFields[key];
@@ -3161,6 +3262,7 @@ async function saveItem(){
 
   if(editingItemId){
     // EDICIÓN: solo recodifica si cambió categoría/subcategoría/sub-subcategoría/proveedor
+    // (o si el ítem venía en modo P/N y ahora pasa a esquema general)
     const cambioTaxonomia = !editingItemOriginal
       || cc!==editingItemOriginal.cc || ss!==editingItemOriginal.ss
       || tt!==editingItemOriginal.tt || ppp!==editingItemOriginal.ppp;
@@ -3179,8 +3281,9 @@ async function saveItem(){
     }
 
     const {data,error}=await sb.from('stock_items').update(row).eq('id',editingItemId).select('codigo');
+    if(error){ loading(false); dbErr(error,'actualizar producto'); return; }
+    await guardarMaquinasDelItem(editingItemId,maquinasSel);
     loading(false);
-    if(error){ dbErr(error,'actualizar producto'); return; }
     closeModal('m-item'); clr(['item-nombre','item-marca','item-modelo','item-cert','item-present','item-min','item-reord','item-aplic','item-precio','item-ubic','item-obs']);
     editingItemId=null; editingItemOriginal=null;
     if(data&&data[0]&&cambioTaxonomia) alert('Producto actualizado. Nuevo código: '+data[0].codigo);
@@ -3191,9 +3294,9 @@ async function saveItem(){
   // ALTA NUEVA: el código lo arma el trigger (asignar_codigo_stock_item) a partir
   // de categoria/subcategoria/sub_subcategoria/proveedor_codigo — no se manda acá.
   row.categoria=cc; row.subcategoria=ss; row.sub_subcategoria=tt; row.proveedor_codigo=ppp;
-  const {data,error}=await sb.from('stock_items').insert(row).select('codigo');
-  loading(false);
+  const {data,error}=await sb.from('stock_items').insert(row).select('id,codigo');
   if(error){
+    loading(false);
     console.error('Error detallado:', error);
     if(error.message.includes('column')){
       alert('Error: La base de datos necesita actualizarse.\n\nAlgunas columnas nuevas no existen todavía.\nContactá al administrador para ejecutar el script de actualización.');
@@ -3202,6 +3305,8 @@ async function saveItem(){
     }
     return;
   }
+  if(data&&data[0]) await guardarMaquinasDelItem(data[0].id,maquinasSel);
+  loading(false);
   closeModal('m-item'); clr(['item-nombre','item-marca','item-modelo','item-cert','item-present','item-min','item-reord','item-aplic','item-precio','item-ubic','item-obs']);
   if(data&&data[0]) alert('Producto guardado con código: '+data[0].codigo);
   await loadItems();
@@ -3209,11 +3314,11 @@ async function saveItem(){
 
 async function filterCat(){
   const q=g('s-cat').value.toLowerCase();
-  const cc=v('f-cat-cat'), scVal=v('f-cat-subcat'), ssubVal=v('f-cat-subsubcat'), prov=v('f-cat-prov');
+  const cc=v('f-cat-cat'), scVal=v('f-cat-subcat'), ssubVal=v('f-cat-subsubcat'), prov=v('f-cat-prov'), maquina=v('f-cat-maquina');
   let ss='', tt='';
   if(ssubVal){ const p=ssubVal.split('-'); ss=p[1]; tt=p[2]; }
   else if(scVal){ const p=scVal.split('-'); ss=p[1]; }
-  await loadItems({q,cc,ss,tt,prov});
+  await loadItems({q,cc,ss,tt,prov,maquina});
 }
 
 // ══════════════════════════════════════
@@ -3231,6 +3336,64 @@ function populateProveedorFilterSelect(){
   const sel=g('f-cat-prov');
   sel.innerHTML='<option value="">Todos los proveedores</option>'
     +S.prov.map(p=>'<option value="'+p.cod+'">'+p.emp+'</option>').join('');
+}
+
+function populateMaquinaFilterSelect(){
+  const sel=g('f-cat-maquina');
+  sel.innerHTML='<option value="">Todas las máquinas</option>'
+    +S.maq.map(m=>'<option value="'+m.cod+'">'+m.nom+'</option>').join('');
+}
+
+// ══════════════════════════════════════
+// ÍTEM DE STOCK — modo de codificación (esquema general / P/N de fábrica)
+// ══════════════════════════════════════
+function onOrigenCodigoChange(){
+  const modo=document.querySelector('input[name="item-origen"]:checked').value;
+  const interno=['fg-item-cat','fg-item-subcat','fg-item-subsubcat','fg-item-prov-sel','fg-item-cod-preview','fg-item-maquinas-multi'];
+  const fabricante=['fg-item-maquina-pn','fg-item-cod-pn','fg-item-prov-pn-display'];
+  interno.forEach(id=>{ g(id).style.display = modo==='interno' ? '' : 'none'; });
+  fabricante.forEach(id=>{ g(id).style.display = modo==='fabricante' ? '' : 'none'; });
+}
+
+function populateMaquinaPNSelect(){
+  const sel=g('item-maquina-pn');
+  sel.innerHTML='<option value="">— seleccionar —</option>'
+    +S.maq.map(m=>'<option value="'+m.cod+'">'+m.nom+'</option>').join('');
+}
+
+function onMaquinaPNChange(){
+  const cod=v('item-maquina-pn');
+  const m=S.maq.find(x=>x.cod===cod);
+  const prov=m?S.prov.find(p=>p.cod===m.provCod):null;
+  g('item-prov-pn-display').value=prov?prov.emp:'';
+}
+
+// Casillas de Máquina(s) para el modo esquema general — 0 a N, opcional
+function populateMaquinasChecklist(seleccionadas){
+  seleccionadas=seleccionadas||[];
+  const cont=g('item-maquinas-multi-container');
+  if(!S.maq.length){ cont.innerHTML='<span style="color:#aaa;font-size:12px">No hay máquinas grandes cargadas todavía.</span>'; return; }
+  cont.innerHTML=S.maq.map(m=>
+    '<label style="display:inline-flex;align-items:center;gap:6px;margin-right:18px;margin-bottom:6px;font-weight:400;cursor:pointer">'
+    +'<input type="checkbox" class="item-maquina-chk" value="'+m.cod+'"'+(seleccionadas.includes(m.cod)?' checked':'')+'> '+m.nom
+    +'</label>'
+  ).join('');
+}
+
+function getMaquinasChecklistSeleccionadas(){
+  return Array.from(document.querySelectorAll('.item-maquina-chk:checked')).map(c=>c.value);
+}
+
+// Guarda la relación ítem↔máquina(s) — reemplaza lo que hubiera antes
+async function guardarMaquinasDelItem(itemId, codigosMaquina){
+  const {error:errDel}=await sb.from('stock_items_maquinas').delete().eq('item_id',itemId);
+  if(errDel){ dbErr(errDel,'actualizar máquinas del ítem'); return false; }
+  const validos=(codigosMaquina||[]).filter(Boolean);
+  if(!validos.length) return true;
+  const rows=validos.map(cod=>({item_id:itemId,maquina_cod:cod}));
+  const {error:errIns}=await sb.from('stock_items_maquinas').insert(rows);
+  if(errIns){ dbErr(errIns,'guardar máquinas del ítem'); return false; }
+  return true;
 }
 
 function syncTaxonomyFilters(){
@@ -4229,12 +4392,16 @@ let editingItemId=null;
 let editingItemOriginal=null;
 
 // Abrir modal para editar un ítem existente
-function editItem(cod){
+async function editItem(cod){
   const it=S.items.find(i=>i.cod===cod);
   if(!it){alert('No se encontró el ítem '+cod+'.');return;}
 
   editingItemId=it.id;
   editingItemOriginal={cc:it.cat,ss:it.subcat,tt:it.subsubcat,ppp:it.provcod};
+
+  const modo=it.origenCodigo==='fabricante'?'fabricante':'interno';
+  g('item-origen-'+modo).checked=true;
+  onOrigenCodigoChange();
 
   populateCategoriaSelect();
   g('item-cat').value=it.cat||'';
@@ -4245,6 +4412,11 @@ function editItem(cod){
 
   populateProveedorSelect();
   g('item-prov-sel').value=it.provcod||'';
+
+  populateMaquinaPNSelect();
+  g('item-maquina-pn').value='';
+  g('item-cod-pn').value=modo==='fabricante'?it.cod:'';
+  g('item-prov-pn-display').value='';
 
   g('item-nombre').value=it.desc||'';
   g('item-marca').value=it.marca||'';
@@ -4262,6 +4434,15 @@ function editItem(cod){
 
   g('item-cod-preview').value=it.cod+' (código actual — cambia solo si modificás categoría, subcategoría, sub-subcategoría o proveedor)';
 
+  // Máquina(s) ya asociadas a este ítem
+  const {data:rel,error:errRel}=await sb.from('stock_items_maquinas').select('maquina_cod').eq('item_id',it.id);
+  const maquinasActuales=errRel?[]:(rel||[]).map(r=>r.maquina_cod);
+  populateMaquinasChecklist(maquinasActuales);
+  if(modo==='fabricante' && maquinasActuales[0]){
+    g('item-maquina-pn').value=maquinasActuales[0];
+    onMaquinaPNChange();
+  }
+
   g('item-modal-title').textContent='Editar producto — '+it.cod;
   g('item-save-btn').innerHTML='<i class="ti ti-device-floppy"></i> Guardar cambios';
   openModal('m-item');
@@ -4272,11 +4453,17 @@ function openItemModal(){
   editingItemId=null; editingItemOriginal=null;
   g('item-modal-title').textContent='Nuevo producto / ítem de stock';
   g('item-save-btn').innerHTML='<i class="ti ti-device-floppy"></i> Guardar producto';
+  g('item-origen-interno').checked=true;
+  onOrigenCodigoChange();
   populateCategoriaSelect();
   populateProveedorSelect();
+  populateMaquinaPNSelect();
+  populateMaquinasChecklist([]);
   g('item-subcat').innerHTML='<option value="">— elegí categoría primero —</option>'; g('item-subcat').disabled=true;
   g('item-subsubcat').innerHTML='<option value="">— elegí subcategoría primero —</option>'; g('item-subsubcat').disabled=true;
   g('item-cod-preview').value='';
+  g('item-cod-pn').value='';
+  g('item-prov-pn-display').value='';
   openModal('m-item');
 }
 
