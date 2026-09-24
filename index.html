@@ -4150,7 +4150,7 @@ function printOTE(idx){
   const num=o.num;
   const fecha='Emisión: '+(o.fecha||'—');
   const cod=o.cod||'';
-  const infoHTML=pf('Equipo',o.eq)+pf('Proveedor',o.prov)+pf('RUT proveedor',o.rutProv)+pf('Tipo de trabajo',o.tipo)+pf('Estado',ppbEst(o.estado))+pf('Conforme',ppbConf(o.conf))+pf('Presupuesto',o.presup?'$'+o.presup:'—')+pf('Costo real',o.costo?'$'+o.costo:'—')+pf('N° Factura',o.factura||'—')+pf('Fecha cierre',o.cierre||'—');
+  const infoHTML=pfEq('Equipo',o.eq)+pf('Proveedor',o.prov)+pf('RUT proveedor',o.rutProv)+pf('Tipo de trabajo',o.tipo)+pf('Estado',ppbEst(o.estado))+pf('Conforme',ppbConf(o.conf))+pf('Presupuesto',o.presup?'$'+o.presup:'—')+pf('Costo real',o.costo?'$'+o.costo:'—')+pf('N° Factura',o.factura||'—')+pf('Fecha cierre',o.cierre||'—');
   const firmasHTML=firma('Responsable de aprobación','Nombre / Aclaración')+firma('Supervisor Mantenimiento','Nombre / Aclaración');
   const html=buildOTPdf('Orden de Trabajo Externa','ote',num,fecha,cod,infoHTML,o.desc,'',firmasHTML);
   const w=window.open('','_blank');
@@ -4167,7 +4167,7 @@ async function printOT(idx){
   const cod=o.cod||'';
   const otp=o.otpEjecId?S.ejecucs.find(e=>e.id===o.otpEjecId):null;
   const infoHTML=
-    pf('Equipo',o.eq)+
+    pfEq('Equipo',o.eq)+
     pf('Funcionario responsable',o.tec)+
     pf('Funcionario(s) de apoyo',(o.tecnicosApoyo&&o.tecnicosApoyo.length)?o.tecnicosApoyo.join(', '):'—')+
     pf('Tipo',o.tipo)+
@@ -4215,6 +4215,7 @@ function ppbEst(e){const m={'Pendiente':'ppb-amber','En proceso':'ppb-blue','Com
 function ppbPrio(p){const m={'Urgente':'ppb-red','Alta':'ppb-amber','Normal':'ppb-blue','Baja':'ppb-gray'};return ppb(p,m[p]||'ppb-gray');}
 function ppbConf(c){if(c==='Sí')return ppb('Conforme','ppb-green');if(c==='No')return ppb('No conforme','ppb-red');return ppb('N/A','ppb-gray');}
 function pf(lbl,val){return '<div class="pp-f"><div class="pp-fl">'+lbl+'</div><div class="pp-fv">'+(val||'—')+'</div></div>';}
+function pfEq(lbl,val){return '<div class="pp-f"><div class="pp-fl">'+lbl+'</div><div class="pp-fv" style="font-size:12pt;font-weight:700">'+(val||'—')+'</div></div>';}
 function firma(lbl,sub){return '<div class="pp-firma"><div class="pp-firma-line"></div><div class="pp-firma-lbl">'+lbl+'</div><div class="pp-firma-sub">'+sub+'</div></div>';}
 
 // RENDER
@@ -5400,7 +5401,7 @@ function buildPrevPDF(tarea, ejec, insumosOverride){
   const footerTxt=num+' · '+(cod?cod+' · ':'')+new Date().toLocaleDateString('es-UY');
 
   const infoHTML=
-    pf('Equipo',tarea.equipo)+
+    pfEq('Equipo',tarea.equipo)+
     pf('Código tarea',tarea.cod)+
     pf('Descripción',tarea.desc)+
     pf('Frecuencia', tarea.freq==='Sin frecuencia' ? '—' : tarea.freq)+
