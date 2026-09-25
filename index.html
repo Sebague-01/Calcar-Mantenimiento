@@ -537,12 +537,12 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   <div class="view" id="view-proveedores">
     <div class="toolbar">
       <div class="toolbar-left"><div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Buscar proveedor..." id="s-prov" oninput="filterProv()"></div></div>
-      <button class="btn-primary" onclick="openModal('m-proveedor')"><i class="ti ti-plus"></i> Nuevo proveedor</button>
+      <button class="btn-primary" onclick="openNewProvModal()"><i class="ti ti-plus"></i> Nuevo proveedor</button>
     </div>
     <div class="table-wrap">
       <table class="data-table">
-        <thead><tr><th>Empresa</th><th>RUT</th><th>Rubro</th><th>Contacto</th><th>Teléfono</th></tr></thead>
-        <tbody id="tb-prov"><tr><td colspan="5"><div class="empty"><i class="ti ti-building-factory"></i>Sin proveedores.</div></td></tr></tbody>
+        <thead><tr><th>Empresa</th><th>RUT</th><th>Rubro</th><th>Contacto</th><th>Teléfono</th><th>Cuentas</th><th style="width:44px"></th></tr></thead>
+        <tbody id="tb-prov"><tr><td colspan="7"><div class="empty"><i class="ti ti-building-factory"></i>Sin proveedores.</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1258,14 +1258,21 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
 <!-- PROVEEDOR -->
 <div class="modal-overlay" id="m-proveedor">
-  <div class="modal-box narrow">
-    <div class="modal-header"><div class="modal-title">Nuevo proveedor</div><button class="modal-close" onclick="closeModal('m-proveedor')"><i class="ti ti-x"></i></button></div>
+  <div class="modal-box" style="width:620px">
+    <div class="modal-header"><div class="modal-title" id="proveedor-modal-title">Nuevo proveedor</div><button class="modal-close" onclick="closeModal('m-proveedor')"><i class="ti ti-x"></i></button></div>
+    <input type="hidden" id="pv-id">
     <div class="form-grid">
       <div class="form-group full"><label class="form-label">Empresa</label><input type="text" class="form-input" id="pv-emp" placeholder="Nombre de la empresa"></div>
       <div class="form-group"><label class="form-label">RUT</label><input type="text" class="form-input mono" id="pv-rut" placeholder="ej: 219900000011"></div>
       <div class="form-group"><label class="form-label">Rubro</label><select class="form-input" id="pv-rub"><option>Mecanizado</option><option>Soldadura</option><option>Calibración</option><option>Electricidad</option><option>Refrigeración</option><option>Múltiple</option><option>Otro</option></select></div>
       <div class="form-group"><label class="form-label">Contacto</label><input type="text" class="form-input" id="pv-con" placeholder="Nombre"></div>
       <div class="form-group"><label class="form-label">Teléfono</label><input type="text" class="form-input" id="pv-tel" placeholder="099 000 000"></div>
+
+      <div class="form-section">Cuentas bancarias <span class="form-optional">(opcional — para depósito, se imprimen en la OC)</span></div>
+      <div class="form-group full">
+        <div id="pv-cuentas-container"></div>
+        <button type="button" class="btn-sec" style="font-size:12px;margin-top:2px" onclick="addCuentaRow()"><i class="ti ti-plus"></i> Agregar cuenta</button>
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-proveedor')">Cancelar</button>
@@ -1741,6 +1748,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="form-section">Proveedor</div>
       <div class="form-group"><label class="form-label">Proveedor</label><select class="form-input" id="oc-prov" onchange="autoRutOC()"><option value="">— seleccioná —</option></select></div>
       <div class="form-group"><label class="form-label">RUT proveedor</label><input type="text" class="form-input mono auto" id="oc-rut" readonly placeholder="Se completa automáticamente"></div>
+      <div class="form-group full"><label class="form-label">Cuenta bancaria para depósito <span class="form-optional">(opcional)</span></label><select class="form-input" id="oc-cuenta"><option value="">— sin datos bancarios —</option></select></div>
       <div class="form-group"><label class="form-label">Condición de pago</label><input type="text" class="form-input" id="oc-pago" placeholder="ej: 30 días"></div>
       <div class="form-group"><label class="form-label">Fecha de entrega</label><input type="text" class="form-input" id="oc-entrega" placeholder="ej: 15/06/2026 o N/A"></div>
       <div class="form-group"><label class="form-label">Lugar de entrega</label><input type="text" class="form-input" id="oc-lugar" placeholder="ej: Planta Tarariras o N/A"></div>
@@ -2723,18 +2731,106 @@ async function loadMaquinasGrandes(){
 async function loadProveedores(){
   const {data,error}=await sb.from('proveedores').select('*').order('empresa');
   if(error){dbErr(error,'cargar proveedores');return;}
-  S.prov=data.map(r=>({id:r.id,cod:r.codigo,emp:r.empresa,rut:r.rut,rub:r.rubro,con:r.contacto,tel:r.telefono}));
+  const {data:cuentas,error:errC}=await sb.from('proveedor_cuentas').select('*').order('principal',{ascending:false});
+  if(errC){dbErr(errC,'cargar cuentas bancarias');return;}
+  S.prov=data.map(r=>({
+    id:r.id,cod:r.codigo,emp:r.empresa,rut:r.rut,rub:r.rubro,con:r.contacto,tel:r.telefono,
+    cuentas:(cuentas||[]).filter(c=>c.proveedor_id===r.id).map(c=>({
+      banco:c.banco||'',titular:c.titular||'',numero:c.numero_cuenta||'',moneda:c.moneda||'UYU',
+      swift:c.swift||'',iban:c.iban||'',principal:!!c.principal,notas:c.notas||''
+    }))
+  }));
   renderProv(S.prov);
+}
+
+// ── Filas dinámicas de cuentas bancarias dentro del modal de proveedor ──
+function addCuentaRow(c){
+  c=c||{};
+  const div=document.createElement('div');
+  div.className='pv-cuenta-row';
+  div.style.cssText='border:1px solid #ececea;border-radius:8px;padding:10px 12px;margin-bottom:8px;position:relative;background:#fbfbfa';
+  div.innerHTML=
+    '<button type="button" onclick="this.parentNode.remove()" title="Quitar cuenta" style="position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;color:#bbb;font-size:17px;line-height:1">×</button>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+      +'<input type="text" class="form-input cq-banco" placeholder="Banco" style="font-size:12px" value="'+(c.banco||'')+'">'
+      +'<input type="text" class="form-input cq-titular" placeholder="Titular de la cuenta" style="font-size:12px" value="'+(c.titular||'')+'">'
+      +'<input type="text" class="form-input cq-numero" placeholder="Número de cuenta" style="font-size:12px" value="'+(c.numero||'')+'">'
+      +'<select class="form-input cq-moneda" style="font-size:12px"><option>UYU</option><option>USD</option><option>EUR</option></select>'
+      +'<input type="text" class="form-input cq-swift" placeholder="SWIFT / BIC" style="font-size:12px" value="'+(c.swift||'')+'">'
+      +'<input type="text" class="form-input cq-iban" placeholder="IBAN (si aplica)" style="font-size:12px" value="'+(c.iban||'')+'">'
+    +'</div>'
+    +'<input type="text" class="form-input cq-notas" placeholder="Notas (opcional)" style="font-size:12px;margin-top:8px" value="'+(c.notas||'')+'">'
+    +'<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:#666;cursor:pointer">'
+      +'<input type="checkbox" class="cq-principal" onchange="onCuentaPrincipalChange(this)"> Cuenta principal (se preselecciona al armar la OC)'
+    +'</label>';
+  g('pv-cuentas-container').appendChild(div);
+  div.querySelector('.cq-moneda').value=c.moneda||'UYU';
+  div.querySelector('.cq-principal').checked=!!c.principal;
+}
+function onCuentaPrincipalChange(chk){
+  if(!chk.checked) return;
+  g('pv-cuentas-container').querySelectorAll('.cq-principal').forEach(other=>{ if(other!==chk) other.checked=false; });
+}
+function readCuentaRows(){
+  return Array.from(g('pv-cuentas-container').children).map(row=>({
+    banco:row.querySelector('.cq-banco').value.trim(),
+    titular:row.querySelector('.cq-titular').value.trim(),
+    numero_cuenta:row.querySelector('.cq-numero').value.trim(),
+    moneda:row.querySelector('.cq-moneda').value,
+    swift:row.querySelector('.cq-swift').value.trim(),
+    iban:row.querySelector('.cq-iban').value.trim(),
+    notas:row.querySelector('.cq-notas').value.trim(),
+    principal:row.querySelector('.cq-principal').checked
+  })).filter(c=>c.banco||c.numero_cuenta||c.titular||c.iban);
+}
+
+function openNewProvModal(){
+  g('proveedor-modal-title').textContent='Nuevo proveedor';
+  g('pv-id').value='';
+  clr(['pv-emp','pv-rut','pv-con','pv-tel']);
+  g('pv-rub').selectedIndex=0;
+  g('pv-cuentas-container').innerHTML='';
+  openModal('m-proveedor');
+}
+function editProvById(id){
+  const p=S.prov.find(x=>x.id===id); if(!p) return;
+  g('proveedor-modal-title').textContent='Editar proveedor';
+  g('pv-id').value=p.id;
+  g('pv-emp').value=p.emp||'';
+  g('pv-rut').value=p.rut||'';
+  if(p.rub) g('pv-rub').value=p.rub;
+  g('pv-con').value=p.con||'';
+  g('pv-tel').value=p.tel||'';
+  g('pv-cuentas-container').innerHTML='';
+  (p.cuentas||[]).forEach(c=>addCuentaRow(c));
+  openModal('m-proveedor');
 }
 
 async function saveProv(){
   const emp=v('pv-emp').trim(); if(!emp){alert('Ingresá el nombre.');return;}
   const row={empresa:emp,rut:v('pv-rut'),rubro:v('pv-rub'),contacto:v('pv-con'),telefono:v('pv-tel')};
+  const id=v('pv-id');
+  const cuentas=readCuentaRows();
   loading(true);
-  const {error}=await sb.from('proveedores').insert(row);
+  let provId=id||null;
+  if(id){
+    const {error}=await sb.from('proveedores').update(row).eq('id',id);
+    if(error){loading(false);dbErr(error,'actualizar proveedor');return;}
+  } else {
+    const {data,error}=await sb.from('proveedores').insert(row).select('id').single();
+    if(error){loading(false);dbErr(error,'guardar proveedor');return;}
+    provId=data.id;
+  }
+  // Se reemplazan todas las cuentas bancarias del proveedor por las que quedaron en el modal.
+  const {error:errDel}=await sb.from('proveedor_cuentas').delete().eq('proveedor_id',provId);
+  if(errDel){loading(false);dbErr(errDel,'actualizar cuentas bancarias');return;}
+  if(cuentas.length){
+    const {error:errIns}=await sb.from('proveedor_cuentas').insert(cuentas.map(c=>({...c,proveedor_id:provId})));
+    if(errIns){loading(false);dbErr(errIns,'guardar cuentas bancarias');return;}
+  }
   loading(false);
-  if(error){dbErr(error,'guardar proveedor');return;}
   closeModal('m-proveedor'); clr(['pv-emp','pv-rut','pv-con','pv-tel']);
+  g('pv-id').value=''; g('pv-cuentas-container').innerHTML='';
   await loadProveedores();
 }
 
@@ -3805,8 +3901,16 @@ async function loadOC(q='',est=''){
   const {data,error}=await query;
   if(error){dbErr(error,'cargar OC');return;}
   // DESPUÉS
-  S.oc=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,ot:r.ot_vinculada,prov:r.proveedor,rut:r.rut_prov,pago:r.cond_pago,entrega:r.fecha_entrega,lugar:r.lugar_entrega,moneda:r.moneda,iva:r.iva_pct,iva_incluido:r.iva_incluido||false,redondeo:r.redondeo||0,shipping:r.shipping_val||0,estado:r.estado,items:r.items||[],subtotal:r.subtotal,ivaVal:r.iva_val,total:r.total,obs:r.observaciones}));
+  S.oc=data.map(r=>({id:r.id,num:r.numero,fecha:r.fecha,ot:r.ot_vinculada,prov:r.proveedor,rut:r.rut_prov,pago:r.cond_pago,entrega:r.fecha_entrega,lugar:r.lugar_entrega,moneda:r.moneda,iva:r.iva_pct,iva_incluido:r.iva_incluido||false,redondeo:r.redondeo||0,shipping:r.shipping_val||0,estado:r.estado,items:r.items||[],subtotal:r.subtotal,ivaVal:r.iva_val,total:r.total,obs:r.observaciones,cuentaBancaria:r.cuenta_bancaria||null}));
   renderOC(S.oc);
+}
+
+// Toma la cuenta bancaria elegida en el selector de la OC y la devuelve como snapshot
+// (se guarda copiada en la OC para que no cambie si después se edita el proveedor).
+function getOCCuentaBancaria(){
+  const cSel=g('oc-cuenta');
+  const opt=cSel.options[cSel.selectedIndex];
+  return (opt&&opt.dataset.cuenta)?JSON.parse(opt.dataset.cuenta):null;
 }
 
 async function saveOC(){
@@ -3816,7 +3920,7 @@ async function saveOC(){
   const redondeo= parseFloat(v('oc-redondeo'))||0;
   const shipping= parseFloat(v('oc-shipping'))||0;
   const {subtotal,ivaVal,shippingVal,total} = calcOCTotales(items, iva, modo, redondeo, shipping);
-  const row={numero:v('oc-num'),fecha:v('oc-fecha'),ot_vinculada:v('oc-ot')||null,proveedor:v('oc-prov')||null,rut_prov:v('oc-rut')||null,cond_pago:v('oc-pago')||null,fecha_entrega:v('oc-entrega')||null,lugar_entrega:v('oc-lugar')||null,moneda:v('oc-moneda'),iva_pct:iva,iva_incluido:modo==='incluido',redondeo,shipping_val:shipping,estado:v('oc-estado'),items,subtotal,iva_val:ivaVal,total,observaciones:v('oc-obs')||null};
+  const row={numero:v('oc-num'),fecha:v('oc-fecha'),ot_vinculada:v('oc-ot')||null,proveedor:v('oc-prov')||null,rut_prov:v('oc-rut')||null,cond_pago:v('oc-pago')||null,fecha_entrega:v('oc-entrega')||null,lugar_entrega:v('oc-lugar')||null,moneda:v('oc-moneda'),iva_pct:iva,iva_incluido:modo==='incluido',redondeo,shipping_val:shipping,estado:v('oc-estado'),items,subtotal,iva_val:ivaVal,total,observaciones:v('oc-obs')||null,cuenta_bancaria:getOCCuentaBancaria()};
   loading(true);
   const {error}=await sb.from('ordenes_compra').insert(row);
   loading(false);
@@ -4315,8 +4419,14 @@ function toggleHistorialItem(btn,key){
 
 function renderProv(arr){
   const tb=g('tb-prov');
-  if(!arr.length){tb.innerHTML='<tr><td colspan="5"><div class="empty"><i class="ti ti-building-factory"></i>Sin proveedores.</div></td></tr>';return;}
-  tb.innerHTML=arr.map(p=>'<tr><td>'+p.emp+'</td><td><span class="mono">'+(p.rut||'—')+'</span></td><td><span class="badge b-gray">'+p.rub+'</span></td><td>'+(p.con||'—')+'</td><td>'+(p.tel||'—')+'</td></tr>').join('');
+  if(!arr.length){tb.innerHTML='<tr><td colspan="7"><div class="empty"><i class="ti ti-building-factory"></i>Sin proveedores.</div></td></tr>';return;}
+  tb.innerHTML=arr.map(p=>{
+    const n=(p.cuentas||[]).length;
+    const cuentasCell=n?'<span class="badge b-gray">'+n+' cta.'+(n>1?'s':'')+'</span>':'<span style="color:#ccc">—</span>';
+    return '<tr><td>'+p.emp+'</td><td><span class="mono">'+(p.rut||'—')+'</span></td><td><span class="badge b-gray">'+p.rub+'</span></td><td>'+(p.con||'—')+'</td><td>'+(p.tel||'—')+'</td>'
+      +'<td>'+cuentasCell+'</td>'
+      +'<td style="text-align:right"><button style="background:none;border:none;cursor:pointer;color:#888;padding:4px" onclick="editProvById(\''+p.id+'\')" title="Editar proveedor"><i class="ti ti-pencil"></i></button></td></tr>';
+  }).join('');
 }
 
 // Filtros que no tienen async (búsqueda local en cache — equipos y proveedores)
@@ -5578,6 +5688,33 @@ function autoRutOC(){
   const sel=g('oc-prov');
   const opt=sel.options[sel.selectedIndex];
   g('oc-rut').value=opt?opt.dataset.rut||'':'';
+  fillCuentaSelectOC();
+}
+
+// Llena el selector de cuenta bancaria según el proveedor elegido en la OC.
+// preselect (opcional): snapshot {banco,numero,...} guardado en una OC existente, para reubicar la misma cuenta al editar.
+function fillCuentaSelectOC(preselect){
+  const sel=g('oc-prov');
+  const opt=sel.options[sel.selectedIndex];
+  const emp=opt?opt.value:'';
+  const prov=S.prov.find(p=>p.emp===emp);
+  const cuentas=(prov&&prov.cuentas)||[];
+  const cSel=g('oc-cuenta');
+  cSel.innerHTML='<option value="">— sin datos bancarios —</option>';
+  cuentas.forEach((c,i)=>{
+    const o=document.createElement('option');
+    o.value=i;
+    o.textContent=(c.banco||'Banco s/d')+' — '+(c.numero||'s/n° cuenta')+(c.moneda?' ('+c.moneda+')':'');
+    o.dataset.cuenta=JSON.stringify(c);
+    cSel.appendChild(o);
+  });
+  if(preselect){
+    const idx=cuentas.findIndex(c=>c.numero===preselect.numero&&c.banco===preselect.banco);
+    if(idx>=0) cSel.value=idx;
+  } else {
+    const pIdx=cuentas.findIndex(c=>c.principal);
+    if(pIdx>=0) cSel.value=pIdx;
+  }
 }
 
 // Agregar fila de ítem en el modal
@@ -5715,6 +5852,7 @@ async function openOCModal(){
   g('oc-num').value=await nextNumSerie('ordenes_compra','numero','OC-M-');
   g('oc-fecha').value=tod();
   g('oc-rut').value='';
+  g('oc-cuenta').innerHTML='<option value="">— sin datos bancarios —</option>';
   clr(['oc-ot','oc-pago','oc-entrega','oc-lugar','oc-obs']);
   g('oc-moneda').value='UYU';
   g('oc-iva').value='22';
@@ -5778,6 +5916,16 @@ function printOC(idx){
   const obsBlock=o.obs
     ?'<div class="oc-obs-sec">Observaciones</div><div class="oc-obs-box">'+o.obs+'</div>':'';
   const otLine=o.ot?'<div style="font-size:8pt;color:#888;margin-top:2pt">OT vinculada: '+o.ot+'</div>':'';
+  const cb=o.cuentaBancaria;
+  const bancoBlock=(cb&&(cb.banco||cb.numero))
+    ?'<div class="oc-obs-sec">Datos para depósito / transferencia</div><div class="oc-obs-box" style="line-height:1.6">'
+      +(cb.banco?'<b>Banco:</b> '+cb.banco+'<br>':'')
+      +(cb.titular?'<b>Titular:</b> '+cb.titular+'<br>':'')
+      +(cb.numero?'<b>N° de cuenta:</b> '+cb.numero+(cb.moneda?' ('+cb.moneda+')':'')+'<br>':'')
+      +(cb.swift?'<b>SWIFT/BIC:</b> '+cb.swift+'<br>':'')
+      +(cb.iban?'<b>IBAN:</b> '+cb.iban+'<br>':'')
+      +(cb.notas?'<b>Notas:</b> '+cb.notas:'')
+    +'</div>':'';
 
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>OC ${o.num}</title>
@@ -5897,6 +6045,7 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #1a1a1
       <tr class="total-row"><td class="lbl">TOTAL</td><td class="num">${o.moneda} ${Number(o.total||0).toFixed(2)}</td></tr>
     </table>
   </div>
+  ${bancoBlock}
   ${obsBlock}
   <div class="oc-firmas">
     <div class="oc-firma"><div class="oc-firma-line"></div><div class="oc-firma-lbl">Solicitado por</div><div class="oc-firma-sub">Nombre / Aclaración / Fecha</div></div>
@@ -6263,6 +6412,7 @@ async function editOC(idx){
     if(p.emp === o.prov) opt.selected = true;
     sel.appendChild(opt);
   });
+  fillCuentaSelectOC(o.cuentaBancaria);
 
   // Pre-cargar campos
   g('oc-num').value   = o.num;
@@ -6317,7 +6467,8 @@ async function saveOCEdit(){
     redondeo, shipping_val:shipping,
     estado       : v('oc-estado'),
     items, subtotal, iva_val:ivaVal, total,
-    observaciones: v('oc-obs')||null
+    observaciones: v('oc-obs')||null,
+    cuenta_bancaria: getOCCuentaBancaria()
   };
   loading(true);
   const {error} = await sb.from('ordenes_compra').update(row).eq('id', o.id);
