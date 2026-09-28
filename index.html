@@ -3335,7 +3335,7 @@ async function saveItem(){
   const cc=v('item-cat'); if(!cc){alert('Elegí la categoría.');return;}
   const ss=v('item-subcat'); if(!ss){alert('Elegí la subcategoría.');return;}
   const tt=v('item-subsubcat'); if(!tt){alert('Elegí la sub-subcategoría.');return;}
-  const ppp=v('item-prov-sel'); if(!ppp){alert('Elegí el proveedor.');return;}
+  const ppp=v('item-prov-sel')||'000'; // sin proveedor conocido => 000 (Desconocido / Stock inicial)
 
   const provSel=S.prov.find(p=>p.cod===ppp);
   const maquinasSel=getMaquinasChecklistSeleccionadas();
@@ -4568,6 +4568,7 @@ function openItemModal(){
   onOrigenCodigoChange();
   populateCategoriaSelect();
   populateProveedorSelect();
+  g('item-prov-sel').value='000'; // por defecto "Desconocido / Stock inicial"; se cambia si se conoce el proveedor
   populateMaquinaPNSelect();
   populateMaquinasChecklist([]);
   g('item-subcat').innerHTML='<option value="">— elegí categoría primero —</option>'; g('item-subcat').disabled=true;
