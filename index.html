@@ -1454,6 +1454,22 @@ textarea.form-input { resize: vertical; min-height: 70px; }
   <div class="modal-box" style="width:720px">
     <div class="modal-header"><div class="modal-title">Carga masiva de stock — recepción de insumos</div><button class="modal-close" onclick="closeModal('m-stock-masivo')"><i class="ti ti-x"></i></button></div>
     <div class="form-grid">
+      <div class="form-section">Codificación de los ítems</div>
+      <div class="form-group full">
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+            <input type="radio" name="sm-origen" id="sm-origen-interno" value="interno" checked onchange="onSmOrigenChange()"> Esquema general (código ya existente / cargado a mano)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+            <input type="radio" name="sm-origen" id="sm-origen-fabricante" value="fabricante" onchange="onSmOrigenChange()"> Número de parte de fábrica (TBA8 / Stork / ESSI)
+          </label>
+        </div>
+      </div>
+      <div class="form-group full" id="sm-maquina-wrap" style="display:none">
+        <label class="form-label">Máquina <span class="form-optional">(se asocia a todos los ítems de esta recepción)</span></label>
+        <select class="form-input" id="sm-maquina" onchange="onSmMaquinaChange()"><option value="">— seleccionar —</option></select>
+        <span class="form-hint" id="sm-maquina-prov"></span>
+      </div>
       <div class="form-section">Datos de la recepción</div>
       <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="sm-fecha"></div>
       <div class="form-group"><label class="form-label">Tipo de movimiento</label>
@@ -1484,8 +1500,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
       <div class="form-section">Ítems recibidos</div>
       <div class="form-group full">
-        <div style="display:grid;grid-template-columns:100px 1fr 100px 80px 80px 90px 26px;gap:6px;margin-bottom:6px;font-size:11px;font-weight:600;color:#888;padding:0 2px">
-          <span>Código interno</span><span>Descripción</span><span style="text-align:center">Categoría</span><span style="text-align:center">Unidad</span><span style="text-align:right">Cantidad</span><span style="text-align:right">P. unitario</span><span></span>
+        <div id="sm-items-header" style="display:grid;grid-template-columns:100px 1fr 100px 80px 80px 90px 26px;gap:6px;margin-bottom:6px;font-size:11px;font-weight:600;color:#888;padding:0 2px">
+          <span id="sm-hdr-cod">Código interno</span><span>Descripción</span><span id="sm-hdr-cat" style="text-align:center">Categoría</span><span style="text-align:center">Unidad</span><span style="text-align:right">Cantidad</span><span style="text-align:right">P. unitario</span><span></span>
         </div>
         <div id="sm-items-container"></div>
         <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-start">
@@ -3335,7 +3351,7 @@ async function saveItem(){
   const cc=v('item-cat'); if(!cc){alert('Elegí la categoría.');return;}
   const ss=v('item-subcat'); if(!ss){alert('Elegí la subcategoría.');return;}
   const tt=v('item-subsubcat'); if(!tt){alert('Elegí la sub-subcategoría.');return;}
-  const ppp=v('item-prov-sel')||'000'; // sin proveedor conocido => 000 (Desconocido / Stock inicial)
+  const ppp=v('item-prov-sel'); if(!ppp){alert('Elegí el proveedor.');return;}
 
   const provSel=S.prov.find(p=>p.cod===ppp);
   const maquinasSel=getMaquinasChecklistSeleccionadas();
@@ -3648,6 +3664,7 @@ function addStockMasivoItem(cod='',desc='',cat='REP',unidad='u',cant='',pu=''){
     +'<input type="number" class="form-input" placeholder="P.unit." value="'+pu+'" step="0.01" style="font-size:12px;text-align:right">'
     +'<button type="button" onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:18px;line-height:1">×</button>';
   g('sm-items-container').appendChild(div);
+  applySmLayout();
 }
 
 function getStockMasivoItems(){
@@ -3705,9 +3722,55 @@ function openStockMasivoModal(){
   g('sm-tipo').value='Entrada — Compra';
   clr(['sm-oc','sm-prov','sm-remito','sm-factura','sm-resp','sm-ubicacion','sm-lote','sm-fecha-fab','sm-fecha-venc']);
   g('sm-estado-ing').value='Recibido';
+  g('sm-origen-interno').checked=true;
+  populateSmMaquinaSelect();
+  g('sm-maquina').value=''; g('sm-maquina-prov').textContent='';
+  onSmOrigenChange();
   g('sm-items-container').innerHTML='';
   addStockMasivoItem(); addStockMasivoItem(); addStockMasivoItem();
   g('m-stock-masivo').classList.add('open');
+}
+
+// ── Modo de codificación de la carga masiva (esquema general / P/N de fábrica) ──
+function smModo(){
+  const r=document.querySelector('input[name="sm-origen"]:checked');
+  return r?r.value:'interno';
+}
+const SM_COLS_INTERNO='100px 1fr 100px 80px 80px 90px 26px';
+const SM_COLS_FAB='120px 1fr 80px 80px 90px 26px';
+function applySmLayout(){
+  const fab=smModo()==='fabricante';
+  const cols=fab?SM_COLS_FAB:SM_COLS_INTERNO;
+  const hdr=g('sm-items-header'); if(hdr) hdr.style.gridTemplateColumns=cols;
+  const hc=g('sm-hdr-cat'); if(hc) hc.style.display=fab?'none':'';
+  const hk=g('sm-hdr-cod'); if(hk) hk.textContent=fab?'N° de parte':'Código interno';
+  Array.from(g('sm-items-container').children).forEach(r=>{
+    r.style.gridTemplateColumns=cols;
+    const sels=r.querySelectorAll('select');
+    if(sels[0]) sels[0].style.display=fab?'none':'';
+  });
+}
+function onSmOrigenChange(){
+  g('sm-maquina-wrap').style.display=smModo()==='fabricante'?'':'none';
+  applySmLayout();
+}
+function populateSmMaquinaSelect(){
+  g('sm-maquina').innerHTML='<option value="">— seleccionar —</option>'
+    +S.maq.map(m=>'<option value="'+m.cod+'">'+m.nom+'</option>').join('');
+}
+function onSmMaquinaChange(){
+  const m=S.maq.find(x=>x.cod===v('sm-maquina'));
+  const p=m?S.prov.find(pp=>pp.cod===m.provCod):null;
+  g('sm-maquina-prov').textContent=p?'Proveedor: '+p.emp:'';
+}
+// Suma la máquina a un ítem sin pisar las otras máquinas que ya tenga asociadas
+async function asociarMaquinaAItem(itemId,maqCod){
+  const {data,error:errSel}=await sb.from('stock_items_maquinas').select('item_id').eq('item_id',itemId).eq('maquina_cod',maqCod).limit(1);
+  if(errSel){dbErr(errSel,'consultar máquinas del ítem');return false;}
+  if(data&&data.length) return true;
+  const {error}=await sb.from('stock_items_maquinas').insert({item_id:itemId,maquina_cod:maqCod});
+  if(error){dbErr(error,'asociar máquina al ítem');return false;}
+  return true;
 }
 
 async function saveStockMasivo(){
@@ -3717,10 +3780,17 @@ async function saveStockMasivo(){
     if(!it.cod){alert('Todos los ítems necesitan un código interno.');return;}
     if(!it.cant||it.cant<=0){alert('Revisá la cantidad del ítem "'+it.cod+'": debe ser mayor a 0.');return;}
   }
+  const fab=smModo()==='fabricante';
+  const maqCod=fab?v('sm-maquina'):'';
+  if(fab&&!maqCod){alert('Elegí la máquina a la que pertenecen los ítems.');return;}
+  const maq=fab?S.maq.find(m=>m.cod===maqCod):null;
+  const provMaq=maq?S.prov.find(p=>p.cod===maq.provCod):null;
+
   const fecha=v('sm-fecha')||tod();
   const tipo=v('sm-tipo');
   const ocRef=v('sm-oc')||null;
   const provRef=v('sm-prov')||null;
+  const provMov=provRef||(provMaq?provMaq.emp:null);
   const remito=v('sm-remito')||null;
   const factura=v('sm-factura')||null;
   const resp=v('sm-resp')||null;
@@ -3735,7 +3805,28 @@ async function saveStockMasivo(){
   for(const it of items){
     let itemExistente=S.items.find(x=>(x.cod||'').toUpperCase()===it.cod);
     if(!itemExistente){
-      const rowItem={
+      // S.items puede estar filtrado (por categoría, proveedor, etc.): confirmar contra la base
+      const {data:ex,error:errEx}=await sb.from('stock_items').select('id,codigo,nombre_comercial,descripcion,unidad').eq('codigo',it.cod).limit(1);
+      if(errEx){loading(false);dbErr(errEx,'buscar producto '+it.cod);return;}
+      if(ex&&ex.length) itemExistente={id:ex[0].id,cod:ex[0].codigo,desc:ex[0].nombre_comercial||ex[0].descripcion,unidad:ex[0].unidad||'u',actual:0};
+    }
+    if(!itemExistente){
+      const rowItem=fab?{
+        codigo:it.cod,
+        descripcion:it.desc||it.cod,
+        nombre_comercial:it.desc||it.cod,
+        unidad:it.unidad||'u',
+        stock_min:0,
+        punto_reorden:0,
+        estado:'Activo',
+        ubicacion_almacen:ubic||null,
+        precio_referencia:it.pu||null,
+        proveedor_principal:provMaq?provMaq.emp:null,
+        origen_codigo:'fabricante',
+        // Sin categoría/subcategoría/sub-subcategoría/proveedor_codigo/correlativo:
+        // el trigger respeta el código tal cual cuando origen_codigo='fabricante'.
+        categoria:null, subcategoria:null, sub_subcategoria:null, proveedor_codigo:null, correlativo:null
+      }:{
         codigo:it.cod,
         descripcion:it.desc||it.cod,
         nombre_comercial:it.desc||it.cod,
@@ -3755,6 +3846,10 @@ async function saveStockMasivo(){
     } else {
       actualizados++;
     }
+    if(fab&&itemExistente.id){
+      const ok=await asociarMaquinaAItem(itemExistente.id,maqCod);
+      if(!ok){loading(false);return;}
+    }
     const rowMov={
       fecha,
       item_cod:it.cod,
@@ -3766,7 +3861,7 @@ async function saveStockMasivo(){
       referencia:ocRef,
       nota:null,
       oc_referencia:ocRef,
-      proveedor:provRef,
+      proveedor:provMov,
       lote_fabricante:lote,
       fecha_fabricacion:fechaFab,
       fecha_vencimiento:fechaVenc,
@@ -3783,7 +3878,7 @@ async function saveStockMasivo(){
   closeModal('m-stock-masivo');
   clr(['sm-oc','sm-prov','sm-remito','sm-factura','sm-resp','sm-ubicacion','sm-lote','sm-fecha-fab','sm-fecha-venc']);
   await Promise.all([loadItems(),loadMovs()]);
-  alert('Recepción registrada: '+items.length+' ítem'+(items.length>1?'s':'')+' — '+creados+' producto'+(creados!==1?'s':'')+' nuevo'+(creados!==1?'s':'')+', '+actualizados+' actualizado'+(actualizados!==1?'s':'')+'.');
+  alert('Recepción registrada: '+items.length+' ítem'+(items.length>1?'s':'')+' — '+creados+' producto'+(creados!==1?'s':'')+' nuevo'+(creados!==1?'s':'')+', '+actualizados+' actualizado'+(actualizados!==1?'s':'')+'.'+(fab&&maq?'\nAsociados a: '+maq.nom+'.':''));
 }
 
 // ══════════════════════════════════════
@@ -4568,7 +4663,6 @@ function openItemModal(){
   onOrigenCodigoChange();
   populateCategoriaSelect();
   populateProveedorSelect();
-  g('item-prov-sel').value='000'; // por defecto "Desconocido / Stock inicial"; se cambia si se conoce el proveedor
   populateMaquinaPNSelect();
   populateMaquinasChecklist([]);
   g('item-subcat').innerHTML='<option value="">— elegí categoría primero —</option>'; g('item-subcat').disabled=true;
