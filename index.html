@@ -1484,7 +1484,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="form-group"><label class="form-label">N° Remito <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-remito" placeholder="REM-12345"></div>
       <div class="form-group"><label class="form-label">N° Factura <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-factura" placeholder="FAC-A-7890"></div>
       <div class="form-group"><label class="form-label">Responsable</label><input type="text" class="form-input" id="sm-resp" placeholder="Nombre"></div>
-      <div class="form-group"><label class="form-label">Ubicación física <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-ubicacion" placeholder="Estante A2"></div>
+      <div class="form-group"><label class="form-label">Ubicación física general <span class="form-optional">(opcional; se usa si la fila no tiene la suya)</span></label><input type="text" class="form-input" id="sm-ubicacion" placeholder="Estante A2"></div>
       <div class="form-group"><label class="form-label">Lote fabricante <span class="form-optional">(opcional)</span></label><input type="text" class="form-input" id="sm-lote" placeholder="99837"></div>
       <div class="form-group"><label class="form-label">Fecha fabricación <span class="form-optional">(opcional)</span></label><input type="date" class="form-input" id="sm-fecha-fab"></div>
       <div class="form-group"><label class="form-label">Fecha vencimiento <span class="form-optional">(opcional)</span></label><input type="date" class="form-input" id="sm-fecha-venc"></div>
@@ -1500,8 +1500,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
       <div class="form-section">Ítems recibidos</div>
       <div class="form-group full">
-        <div id="sm-items-header" style="display:grid;grid-template-columns:100px 1fr 100px 80px 80px 90px 26px;gap:6px;margin-bottom:6px;font-size:11px;font-weight:600;color:#888;padding:0 2px">
-          <span id="sm-hdr-cod">Código interno</span><span>Descripción</span><span id="sm-hdr-cat" style="text-align:center">Categoría</span><span style="text-align:center">Unidad</span><span style="text-align:right">Cantidad</span><span style="text-align:right">P. unitario</span><span></span>
+        <div id="sm-items-header" style="display:grid;grid-template-columns:100px 1fr 100px 80px 80px 90px 110px 26px;gap:6px;margin-bottom:6px;font-size:11px;font-weight:600;color:#888;padding:0 2px">
+          <span id="sm-hdr-cod">Código interno</span><span>Descripción</span><span id="sm-hdr-cat" style="text-align:center">Categoría</span><span style="text-align:center">Unidad</span><span style="text-align:right">Cantidad</span><span style="text-align:right">P. unitario</span><span>Ubicación</span><span></span>
         </div>
         <div id="sm-items-container"></div>
         <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-start">
@@ -1522,7 +1522,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 <div class="modal-overlay" id="m-sm-paste">
   <div class="modal-box narrow">
     <div class="modal-header"><div class="modal-title">Pegar ítems desde planilla</div><button class="modal-close" onclick="closeModal('m-sm-paste')"><i class="ti ti-x"></i></button></div>
-    <div style="font-size:12px;color:#888;margin-bottom:8px">Copiá un rango de Excel y pegalo acá. Columnas esperadas: <b>Código | Descripción | Categoría | Unidad | Cantidad | P.unitario</b><br>Categoría acepta el código (LUB/QUI/REP/HER/CON) o el nombre completo. Si no incluís categoría/unidad/precio, pegá solo <b>Código | Descripción | Cantidad</b> (3 columnas).</div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px">Copiá un rango de Excel y pegalo acá. Columnas esperadas: <b>Código | Descripción | Categoría | Unidad | Cantidad | P.unitario | Ubicación</b> (las dos últimas son opcionales)<br>Categoría acepta el código (LUB/QUI/REP/HER/CON) o el nombre completo. Si no incluís categoría/unidad/precio, pegá solo <b>Código | Descripción | Cantidad</b> (3 columnas).</div>
     <textarea id="sm-paste-txt" class="form-input" rows="8" style="font-size:11px;font-family:monospace;width:100%" placeholder="Pegá acá..."></textarea>
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-sm-paste');g('sm-paste-txt').value=''">Cancelar</button>
@@ -3652,9 +3652,9 @@ function normalizeUnidadMasivo(txt){
 }
 
 // Agregar fila de ítem en el modal de carga masiva
-function addStockMasivoItem(cod='',desc='',cat='REP',unidad='u',cant='',pu=''){
+function addStockMasivoItem(cod='',desc='',cat='REP',unidad='u',cant='',pu='',ubic=''){
   const div=document.createElement('div');
-  div.style.cssText='display:grid;grid-template-columns:100px 1fr 100px 80px 80px 90px 26px;gap:6px;margin-bottom:6px;align-items:center';
+  div.style.cssText='display:grid;grid-template-columns:100px 1fr 100px 80px 80px 90px 110px 26px;gap:6px;margin-bottom:6px;align-items:center';
   div.innerHTML=
     '<input type="text" class="form-input mono" placeholder="Código" value="'+cod+'" style="font-size:12px;text-transform:uppercase">'
     +'<input type="text" class="form-input" placeholder="Descripción..." value="'+desc+'" style="font-size:12px">'
@@ -3662,6 +3662,7 @@ function addStockMasivoItem(cod='',desc='',cat='REP',unidad='u',cant='',pu=''){
     +'<select class="form-input" style="font-size:12px">'+unidadOptsHtmlMasivo(unidad)+'</select>'
     +'<input type="number" class="form-input" placeholder="Cant." value="'+cant+'" min="0.001" step="any" style="font-size:12px;text-align:right">'
     +'<input type="number" class="form-input" placeholder="P.unit." value="'+pu+'" step="0.01" style="font-size:12px;text-align:right">'
+    +'<input type="text" class="form-input" placeholder="Estante A2" value="'+String(ubic).replace(/"/g,'&quot;')+'" style="font-size:12px">'
     +'<button type="button" onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:18px;line-height:1">×</button>';
   g('sm-items-container').appendChild(div);
   applySmLayout();
@@ -3681,7 +3682,8 @@ function getStockMasivoItems(){
         cat:sels[0]?sels[0].value:'REP',
         unidad:sels[1]?sels[1].value:'u',
         cant:parseFloat(ins[2]?ins[2].value:0)||0,
-        pu:parseFloat(ins[3]?ins[3].value:0)||0
+        pu:parseFloat(ins[3]?ins[3].value:0)||0,
+        ubic:ins[4]?ins[4].value.trim():''
       });
     }
   }
@@ -3696,8 +3698,10 @@ function importStockMasivoPaste(){
   let imported=0;
   lines.forEach(line=>{
     const cols=line.split('\t').map(c=>c.trim());
-    let cod='',desc='',cat='',unidad='',cant='',pu='';
-    if(cols.length>=6){
+    let cod='',desc='',cat='',unidad='',cant='',pu='',ubic='';
+    if(cols.length>=7){
+      [cod,desc,cat,unidad,cant,pu,ubic]=cols;
+    } else if(cols.length===6){
       [cod,desc,cat,unidad,cant,pu]=cols;
     } else if(cols.length===5){
       [cod,desc,cat,unidad,cant]=cols;
@@ -3709,7 +3713,7 @@ function importStockMasivoPaste(){
     if(!cod) return;
     // Saltar fila de encabezado
     if(cod.toLowerCase()==='código'||cod.toLowerCase()==='codigo'||cod.toLowerCase()==='cód.') return;
-    addStockMasivoItem(cod.toUpperCase(), desc, normalizeCatMasivo(cat), normalizeUnidadMasivo(unidad), toNum(cant), toNum(pu));
+    addStockMasivoItem(cod.toUpperCase(), desc, normalizeCatMasivo(cat), normalizeUnidadMasivo(unidad), toNum(cant), toNum(pu), ubic);
     imported++;
   });
   closeModal('m-sm-paste');
@@ -3736,8 +3740,8 @@ function smModo(){
   const r=document.querySelector('input[name="sm-origen"]:checked');
   return r?r.value:'interno';
 }
-const SM_COLS_INTERNO='100px 1fr 100px 80px 80px 90px 26px';
-const SM_COLS_FAB='120px 1fr 80px 80px 90px 26px';
+const SM_COLS_INTERNO='100px 1fr 100px 80px 80px 90px 110px 26px';
+const SM_COLS_FAB='120px 1fr 80px 80px 90px 110px 26px';
 function applySmLayout(){
   const fab=smModo()==='fabricante';
   const cols=fab?SM_COLS_FAB:SM_COLS_INTERNO;
@@ -3819,7 +3823,7 @@ async function saveStockMasivo(){
         stock_min:0,
         punto_reorden:0,
         estado:'Activo',
-        ubicacion_almacen:ubic||null,
+        ubicacion_almacen:it.ubic||ubic||null,
         precio_referencia:it.pu||null,
         proveedor_principal:provMaq?provMaq.emp:null,
         origen_codigo:'fabricante',
@@ -3835,7 +3839,7 @@ async function saveStockMasivo(){
         stock_min:0,
         punto_reorden:0,
         estado:'Activo',
-        ubicacion_almacen:ubic||null,
+        ubicacion_almacen:it.ubic||ubic||null,
         precio_referencia:it.pu||null
       };
       const {data:nuevo,error:errIns}=await sb.from('stock_items').insert(rowItem).select();
@@ -3850,6 +3854,7 @@ async function saveStockMasivo(){
       const ok=await asociarMaquinaAItem(itemExistente.id,maqCod);
       if(!ok){loading(false);return;}
     }
+    const ubicIt=it.ubic||ubic;
     const rowMov={
       fecha,
       item_cod:it.cod,
@@ -3865,7 +3870,7 @@ async function saveStockMasivo(){
       lote_fabricante:lote,
       fecha_fabricacion:fechaFab,
       fecha_vencimiento:fechaVenc,
-      ubicacion_fisica:ubic,
+      ubicacion_fisica:ubicIt,
       remito,
       factura,
       precio_unitario:it.pu||null,
