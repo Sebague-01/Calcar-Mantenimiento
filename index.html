@@ -463,7 +463,10 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           🏛 Solo observaciones ministeriales
         </label>
       </div>
-      <button class="btn-sec" onclick="loadReclamos()"><i class="ti ti-refresh"></i> Actualizar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sec" onclick="abrirListadoReclamos()"><i class="ti ti-list-check"></i> Listar reclamos</button>
+        <button class="btn-sec" onclick="loadReclamos()"><i class="ti ti-refresh"></i> Actualizar</button>
+      </div>
     </div>
     <div class="table-wrap">
       <table class="data-table">
@@ -1106,6 +1109,34 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="form-actions">
       <button class="btn-sec" onclick="closeModal('m-ote')">Cancelar</button>
       <button class="btn-primary" onclick="saveOTE()"><i class="ti ti-device-floppy"></i> Guardar OTE</button>
+    </div>
+  </div>
+</div>
+
+<!-- LISTADO DE RECLAMOS -->
+<div class="modal-overlay" id="m-reclamos-lista">
+  <div class="modal-box" style="width:900px">
+    <div class="modal-header"><div class="modal-title">Listar reclamos</div><button class="modal-close" onclick="closeModal('m-reclamos-lista')"><i class="ti ti-x"></i></button></div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px">
+      <select id="rl-est" onchange="rlAplicarFiltro()" style="max-width:240px">
+        <option value="activos">Solo pendientes de resolver</option>
+        <option value="">Todos los estados</option>
+        <option>Pendiente</option><option>Tomado</option><option>Convertido</option>
+        <option>Pendiente de Conformidad</option><option>Cerrado</option><option>Rechazado</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#555;cursor:pointer"><input type="checkbox" id="rl-todos" onchange="rlToggleTodos(this.checked)" style="width:auto"> Seleccionar todos</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#555;cursor:pointer"><input type="checkbox" id="rl-fotos" checked style="width:auto"> Incluir fotos</label>
+      <span id="rl-count" style="margin-left:auto;font-size:12px;color:#888"></span>
+    </div>
+    <div style="max-height:55vh;overflow-y:auto;border:1px solid #e5e4e0;border-radius:8px">
+      <table class="data-table" style="margin:0">
+        <thead><tr><th style="width:32px"></th><th>Número</th><th>Fecha</th><th>Sector</th><th>Equipo / Ubicación</th><th>Prioridad</th><th>Estado</th><th style="width:40px">Foto</th></tr></thead>
+        <tbody id="rl-body"></tbody>
+      </table>
+    </div>
+    <div class="form-actions">
+      <button class="btn-sec" onclick="closeModal('m-reclamos-lista')">Cancelar</button>
+      <button class="btn-primary" onclick="generarListadoReclamos()"><i class="ti ti-printer"></i> Generar listado</button>
     </div>
   </div>
 </div>
@@ -3176,6 +3207,103 @@ function imprimirReclamo(idx){
   if(!w){alert('El navegador bloqueó la ventana del PDF. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
   w.document.write(html);
   w.document.close();
+}
+
+// ── Listado de reclamos (selección + tabla imprimible con fotos) ──
+let RL_ALL=[];      // todos los reclamos (sin filtros de pantalla)
+let RL_SEL=new Set(); // ids seleccionados
+function rlEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+async function abrirListadoReclamos(){
+  loading(true);
+  const {data,error}=await sb.from('reclamos').select('*').order('created_at',{ascending:true});
+  loading(false);
+  if(error){dbErr(error,'cargar reclamos para listar');return;}
+  RL_ALL=data.map(r=>({
+    id:r.id,num:r.numero,fecha:r.created_at,sector:r.sector,eqUbic:r.equipo_ubicacion,
+    desc:r.descripcion,prio:r.prioridad,reportante:r.reportado_por,estado:r.estado,
+    tomadoPor:r.tomado_por,fotoUrl:r.foto_url,esMinisterial:r.es_observacion_ministerial,refMinisterial:r.referencia_ministerial
+  }));
+  RL_SEL=new Set();
+  g('rl-est').value='activos';
+  g('rl-todos').checked=false;
+  rlAplicarFiltro();
+  g('m-reclamos-lista').classList.add('open');
+}
+
+function rlVisibles(){
+  const f=g('rl-est').value;
+  if(f==='activos') return RL_ALL.filter(r=>['Pendiente','Tomado','Convertido','Pendiente de Conformidad'].includes(r.estado));
+  if(f) return RL_ALL.filter(r=>r.estado===f);
+  return RL_ALL;
+}
+
+function rlAplicarFiltro(){
+  const vis=rlVisibles();
+  const visIds=new Set(vis.map(r=>r.id));
+  RL_SEL=new Set([...RL_SEL].filter(id=>visIds.has(id)));
+  // por defecto, al cambiar el filtro se preselecciona todo lo visible
+  if(!RL_SEL.size) vis.forEach(r=>RL_SEL.add(r.id));
+  g('rl-body').innerHTML=vis.length ? vis.map(r=>{
+    const fecha=r.fecha?new Date(r.fecha).toLocaleDateString('es-UY'):'—';
+    return '<tr><td><input type="checkbox" '+(RL_SEL.has(r.id)?'checked':'')+' onchange="rlToggle('+RL_ALL.indexOf(r)+',this.checked)" style="width:auto"></td>'
+      +'<td><span class="mono">'+rlEsc(r.num)+'</span></td><td style="color:#888">'+fecha+'</td><td>'+rlEsc(r.sector||'—')+'</td><td>'+rlEsc(r.eqUbic||'—')+'</td>'
+      +'<td>'+bPrioReclamo(r.prio)+'</td><td>'+bEstReclamo(r.estado)+'</td><td style="text-align:center">'+(r.fotoUrl?'📷':'')+'</td></tr>';
+  }).join('') : '<tr><td colspan="8"><div class="empty"><i class="ti ti-message-report"></i>Sin reclamos para este filtro.</div></td></tr>';
+  rlActualizarContador();
+}
+
+function rlToggle(i,on){ const id=RL_ALL[i].id; if(on) RL_SEL.add(id); else RL_SEL.delete(id); rlActualizarContador(); }
+function rlToggleTodos(on){
+  RL_SEL=new Set(on?rlVisibles().map(r=>r.id):[]);
+  g('rl-body').querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=on);
+  rlActualizarContador();
+}
+function rlActualizarContador(){
+  const n=RL_SEL.size, t=rlVisibles().length;
+  g('rl-count').textContent=n+' de '+t+' seleccionados';
+  g('rl-todos').checked=(t>0 && n===t);
+}
+
+function generarListadoReclamos(){
+  const sel=RL_ALL.filter(r=>RL_SEL.has(r.id));
+  if(!sel.length){alert('Seleccioná al menos un reclamo para listar.');return;}
+  const conFotos=g('rl-fotos').checked;
+  const hoy=new Date().toLocaleDateString('es-UY');
+  const colorPrio={Alta:'#A32D2D',Media:'#8a6d00',Baja:'#666'};
+  const filas=sel.map(r=>{
+    const fecha=r.fecha?new Date(r.fecha).toLocaleDateString('es-UY'):'—';
+    const foto=(conFotos&&r.fotoUrl)?'<img src="'+rlEsc(r.fotoUrl)+'" alt="foto">':(conFotos?'<span class="nofoto">sin foto</span>':'');
+    const min=r.esMinisterial?'<div class="min">🏛 Ministerial'+(r.refMinisterial?': '+rlEsc(r.refMinisterial):'')+'</div>':'';
+    return '<tr><td class="mono">'+rlEsc(r.num)+'</td><td>'+fecha+'</td><td>'+rlEsc(r.sector||'—')+'</td><td>'+rlEsc(r.eqUbic||'—')+'</td>'
+      +'<td style="font-weight:700;color:'+(colorPrio[r.prio]||'#666')+'">'+rlEsc(r.prio||'—')+'</td>'
+      +'<td>'+rlEsc(r.estado)+(r.tomadoPor?'<div class="sub">'+rlEsc(r.tomadoPor)+'</div>':'')+'</td>'
+      +'<td class="desc">'+rlEsc(r.desc||'—').replace(/\n/g,'<br>')+min+'</td>'
+      +(conFotos?'<td class="foto">'+foto+'</td>':'')+'</tr>';
+  }).join('');
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reclamos pendientes - '+hoy+'</title><style>'
+    +'@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#1a1a18;margin:0;padding:0}'
+    +'.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3pt solid #1D9E75;padding-bottom:6pt;margin-bottom:8pt}'
+    +'.hd h1{font-size:16pt;margin:0}.hd .s{font-size:8pt;color:#666;margin-top:2pt}.hd .r{text-align:right;font-size:9pt;color:#555}'
+    +'table{width:100%;border-collapse:collapse}th{text-align:left;font-size:8pt;text-transform:uppercase;letter-spacing:.3pt;color:#555;border-bottom:1.5pt solid #999;padding:4pt 5pt;background:#f4f4f2;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'td{padding:5pt;border-bottom:.5pt solid #ccc;vertical-align:top}tr{page-break-inside:avoid}'
+    +'.mono{font-family:"Courier New",monospace;font-weight:700;white-space:nowrap}.desc{width:'+(conFotos?'30%':'45%')+';line-height:1.4}'
+    +'.sub{font-size:8pt;color:#888}.min{margin-top:3pt;font-size:8pt;color:#8a6d00}'
+    +'.foto{width:130px;text-align:center}.foto img{max-width:120px;max-height:90px;border:1px solid #ddd;border-radius:3px}.nofoto{color:#bbb;font-size:8pt}'
+    +'.ft{margin-top:8pt;font-size:7pt;color:#aaa;border-top:1pt solid #ddd;padding-top:3pt}'
+    +'.no-print{position:fixed;top:12px;right:12px;display:flex;gap:8px}.no-print button{padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;border:none}'
+    +'.bp{background:#1D9E75;color:#fff}.bc{background:#eee;color:#333}@media print{.no-print{display:none!important}}'
+    +'</style></head><body>'
+    +'<div class="no-print"><button class="bp" onclick="window.print()">🖨 Imprimir</button><button class="bc" onclick="window.close()">✕ Cerrar</button></div>'
+    +'<div class="hd"><div><h1>Reclamos — Pendientes de resolver</h1><div class="s">CALCAR · NOFROCK SAS — Departamento de Mantenimiento</div></div>'
+    +'<div class="r">Emitido: '+hoy+'<br><b>'+sel.length+'</b> reclamo'+(sel.length===1?'':'s')+'</div></div>'
+    +'<table><thead><tr><th>Número</th><th>Fecha</th><th>Sector</th><th>Equipo / Ubicación</th><th>Prioridad</th><th>Estado</th><th>Descripción</th>'+(conFotos?'<th>Foto</th>':'')+'</tr></thead><tbody>'+filas+'</tbody></table>'
+    +'<div class="ft">CALCAR · NOFROCK SAS — Sistema de Gestión de Mantenimiento</div></body></html>';
+  const w=window.open('','_blank');
+  if(!w){alert('El navegador bloqueó la ventana. Permití las ventanas emergentes para este sitio e intentá de nuevo.');return;}
+  w.document.write(html);
+  w.document.close();
+  closeModal('m-reclamos-lista');
 }
 
 // ══════════════════════════════════════
