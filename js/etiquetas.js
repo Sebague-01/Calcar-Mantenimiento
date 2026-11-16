@@ -45,6 +45,9 @@ let cfg=cargarCfg();
 const sel=new Map();   // codigo → copias
 let libPromise=null;
 
+// S es un `const` global de la app (no cuelga de window): se accede por nombre
+function listaItems(){ try{ return (typeof S!=='undefined' && S.items) ? S.items : []; }catch(e){ return []; } }
+function hayS(){ try{ return typeof S!=='undefined' && Array.isArray(S.items); }catch(e){ return false; } }
 function clon(o){return JSON.parse(JSON.stringify(o));}
 function cargarCfg(){
   const c=clon(DEF);
@@ -175,7 +178,7 @@ function docHTML(res){
 // ── Selección de ítems ──
 function itemsSeleccionados(){
   const out=[];
-  (window.S&&S.items||[]).forEach(it=>{
+  listaItems().forEach(it=>{
     if(sel.has(it.cod)){ const n=Math.max(1,parseInt(sel.get(it.cod))||1); for(let i=0;i<n;i++) out.push(it); }
   });
   return out;
@@ -324,7 +327,7 @@ function sync(){
 
 function visibles(){
   const q=(document.getElementById('etq-q').value||'').toLowerCase().trim();
-  return (window.S&&S.items||[]).filter(it=>!q||((it.cod||'')+' '+(it.desc||'')+' '+(it.marca||'')).toLowerCase().indexOf(q)>=0);
+  return listaItems().filter(it=>!q||((it.cod||'')+' '+(it.desc||'')+' '+(it.marca||'')).toLowerCase().indexOf(q)>=0);
 }
 
 function renderLista(){
@@ -353,7 +356,7 @@ function contador(){
 
 async function preview(){
   const box=document.getElementById('etq-prev'), warn=document.getElementById('etq-warn');
-  const items=window.S&&S.items||[];
+  const items=listaItems();
   const it=items.find(i=>sel.has(i.cod))||items[0];
   if(!it){ box.textContent='Sin productos para mostrar.'; warn.textContent=''; return; }
   try{
@@ -370,7 +373,7 @@ async function preview(){
 }
 
 function abrir(){
-  if(!window.S||!S.items){ alert('Abrí primero la pestaña Stock → Catálogo.'); return; }
+  if(!hayS()){ alert('Abrí primero la pestaña Stock → Catálogo.'); return; }
   construirDOM(); sync();
   document.getElementById('etq-ov').classList.add('open');
   renderLista();
